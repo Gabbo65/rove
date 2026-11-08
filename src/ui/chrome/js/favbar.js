@@ -1,5 +1,5 @@
 // Favorites bar + the Edge-style "Edit favorite" popup (name + URL). Data lives in the main process.
-import { $, pb, faviconNode } from './util.js';
+import { $, pb, faviconNode, bgClick } from './util.js';
 import * as popups from './popups.js';
 import { horizontalDrag } from './hdrag.js';
 
@@ -27,7 +27,7 @@ function item(f) {
   if (f.title) b.append(Object.assign(document.createElement('span'), { textContent: f.title }));
   else b.classList.add('icon-only');
 
-  b.addEventListener('click', (e) => pb.send('fav:open', { url: f.url, disposition: e.metaKey ? 'background' : 'current' }));
+  b.addEventListener('click', (e) => pb.send('fav:open', { url: f.url, disposition: bgClick(e) ? 'background' : 'current' }));
   b.addEventListener('auxclick', (e) => { if (e.button === 1) pb.send('fav:open', { url: f.url, disposition: 'background' }); });
   b.addEventListener('contextmenu', async (e) => {
     e.preventDefault();

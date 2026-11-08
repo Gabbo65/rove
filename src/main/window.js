@@ -8,7 +8,8 @@
 // While a popup is open (downloads, history, address suggestions…) the chrome moves to the TOP so its
 // popups draw over the page; the page stays visible through the transparent area. Clicking there closes the popup.
 const { BaseWindow, WebContentsView, session, nativeTheme } = require('electron');
-const { PRELOAD } = require('./paths');
+const path = require('path');
+const { PRELOAD, ROOT } = require('./paths');
 const { Tab } = require('./tab');
 const urls = require('./urls');
 const closed = require('./closed');
@@ -16,6 +17,19 @@ const closed = require('./closed');
 let seq = 0;
 
 const UI_PREFS = { preload: PRELOAD.chrome, contextIsolation: true, sandbox: true, nodeIntegration: false };
+
+// Windows / Linux: no Mac "traffic lights" — the system draws minimize / maximize / close at the top right,
+// over our tab strip, in the strip's colour (updated when the theme changes).
+const IS_MAC = process.platform === 'darwin';
+function overlayColors(isPrivate) {
+  if (isPrivate) return { color: '#1a1326', symbolColor: '#e8e3f3', height: 40 };
+  return nativeTheme.shouldUseDarkColors ? { color: '#1f1f1f', symbolColor: '#e6e6e6', height: 40 } : { color: '#e9e9ec', symbolColor: '#1f1f1f', height: 40 };
+}
+function frameOptions(isPrivate) {
+  if (IS_MAC) return { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 13 } };
+  return { titleBarStyle: 'hidden', titleBarOverlay: overlayColors(isPrivate), autoHideMenuBar: true,
+    ...(process.platform === 'linux' ? { icon: path.join(ROOT, 'build', 'icon.png') } : {}) };
+}
 
 function themeBackground(isPrivate) {
   if (isPrivate) return '#231a33';
@@ -47,7 +61,7 @@ class Win {
 
     this.base = new BaseWindow({
       width: 1280, height: 860, minWidth: 600, minHeight: 400,
-      titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 13 },
+      ...frameOptions(isPrivate),
       backgroundColor: themeBackground(isPrivate), show: false,
       title: isPrivate ? 'InPrivate' : 'Personal Browser',
     });
@@ -73,6 +87,12 @@ class Win {
     setTimeout(() => { if (!this.destroyed && !this.base.isVisible()) this.base.show(); }, 1500);
     this.hud.webContents.once('did-finish-load', () => this.sendHud());
 
+    if (!IS_MAC) {
+      this.base.setMenuBarVisibility?.(false); // shortcuts still work; menu items live in the ⋯ button
+      const recolor = () => { if (!this.destroyed) try { this.base.setTitleBarOverlay(overlayColors(isPrivate)); } catch {} };
+      nativeTheme.on('updated', recolor);
+      this.base.once('closed', () => nativeTheme.removeListener('updated', recolor));
+    }
     this.base.on('resize', () => this.layout());
     this.base.on('focus', () => this.app.onWindowFocus(this));
     this.base.on('close', () => this.onClose());

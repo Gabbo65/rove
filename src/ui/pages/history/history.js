@@ -55,7 +55,7 @@ function render() {
     const a = document.createElement('a'); a.href = h.url; a.title = h.url;
     a.addEventListener('click', (e) => {
       e.preventDefault();
-      window.pb.call('open', { url: h.url, newTab: e.metaKey || e.button === 1 });
+      window.pb.call('open', { url: h.url, newTab: (/Mac/.test(navigator.platform) ? e.metaKey : e.ctrlKey) || e.button === 1 });
     });
     const t = document.createElement('span'); t.className = 't'; highlight(t, h.title || h.url, query);
     const d = document.createElement('span'); d.className = 'd'; highlight(d, host(h.url), query);

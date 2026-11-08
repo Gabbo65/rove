@@ -1,6 +1,6 @@
 // Address-bar suggestions dropdown: what you typed, open tabs, favorites, history, search suggestions.
 // ↑/↓ choose · Enter go · Esc back to what you typed / close · Shift+Delete removes a history entry.
-import { $, pb, faviconNode, hostOf } from './util.js';
+import { $, pb, faviconNode, hostOf, bgClick } from './util.js';
 import * as popups from './popups.js';
 import { addressBar } from './toolbar.js';
 
@@ -60,7 +60,7 @@ function render() {
     row.append(icon, text);
     if (it.type === 'tab') row.append(Object.assign(document.createElement('span'), { className: 'sg-badge', textContent: 'Switch to tab' }));
     row.addEventListener('mousedown', (e) => e.preventDefault()); // keep focus in the address bar
-    row.addEventListener('click', (e) => choose(it, e.metaKey ? 'background' : 'current'));
+    row.addEventListener('click', (e) => choose(it, bgClick(e) ? 'background' : 'current'));
     return row;
   }));
 }
@@ -113,7 +113,7 @@ input.addEventListener('keydown', (e) => {
     render();
   } else if (e.key === 'Enter' && sel >= 0) {
     e.preventDefault();
-    choose(items[sel], e.metaKey ? 'background' : 'current');
+    choose(items[sel], bgClick(e) ? 'background' : 'current');
   } else if (e.key === 'Escape') {
     e.preventDefault();
     if (sel >= 0 || input.value !== typed) { sel = -1; input.value = typed; render(); }

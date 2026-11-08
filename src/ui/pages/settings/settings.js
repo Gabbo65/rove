@@ -169,12 +169,16 @@ $('clr-go').onclick = async () => {
 
 // ---------- about / updates ----------
 function renderAbout(a) {
-  $('ab-versions').textContent = `Electron ${a.current} · Chromium ${a.chromium}`;
-  const text = { 'up-to-date': 'Your browser engine is up to date', 'update-available': 'An engine update is available',
-    unsupported: 'Your browser engine no longer gets security fixes', unknown: 'Not checked yet' }[a.status];
+  const release = a.mode === 'release';
+  $('ab-versions').textContent = `Version ${a.appVersion || '?'} · Electron ${a.electron || a.current} · Chromium ${a.chromium}`;
+  const text = release
+    ? { 'up-to-date': 'Personal Browser is up to date', 'update-available': 'A new version is available', unknown: 'Not checked yet' }[a.status]
+    : { 'up-to-date': 'Your browser engine is up to date', 'update-available': 'An engine update is available',
+      unsupported: 'Your browser engine no longer gets security fixes', unknown: 'Not checked yet' }[a.status];
+  $('ab-update').textContent = release ? 'Download' : 'Update now';
   $('ab-status').textContent = text;
   $('ab-status').style.color = a.status === 'unsupported' ? 'var(--danger)' : '';
-  $('ab-detail').textContent = [a.latest && `Newest: Electron ${a.latest}`, a.checkedAt && `Checked ${new Date(a.checkedAt).toLocaleString()}`,
+  $('ab-detail').textContent = [a.latest && (release ? `Newest: ${a.latest}` : `Newest: Electron ${a.latest}`), a.checkedAt && `Checked ${new Date(a.checkedAt).toLocaleString()}`,
     a.error && `Last check failed: ${a.error}`].filter(Boolean).join(' · ');
   $('ab-update').hidden = !(a.status === 'update-available' || a.status === 'unsupported');
 }

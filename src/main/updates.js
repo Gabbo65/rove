@@ -1,6 +1,9 @@
-// Engine updates. The browser is only as safe as its Chromium engine, which ships inside Electron.
-// We check the newest Electron release (npm registry) once a day, tell the UI, and "Update now" runs
-// scripts/update-engine.sh in Terminal: upgrade Electron → run all tests → rebuild + reinstall only if they pass.
+// Updates, two kinds:
+// • "source" — you run the browser from its project folder (or an app built from it): we check the newest
+//   Electron (npm registry); "Update now" runs scripts/update-engine.sh in Terminal: upgrade Electron → run all
+//   tests → rebuild + reinstall only if they pass. The browser is only as safe as its Chromium engine.
+// • "release" — a downloaded build (GitHub Releases): we check the newest release of this app; "Update now"
+//   opens its download page. Each release ships with the current engine.
 const { app, net, shell, dialog, BaseWindow } = require('electron');
 const { EventEmitter } = require('events');
 const fs = require('fs');
@@ -28,24 +31,35 @@ function evaluate(current, latest) {
   return parse(latest)[0] - parse(current)[0] >= SUPPORTED_MAJORS ? 'unsupported' : 'update-available';
 }
 
+const REPO = 'Gabbo65/personal-browser';
+const mode = () => process.env.PB_UPDATE_MODE || (sourceDir() ? 'source' : 'release');
+
 function state() {
   const saved = db.kv.get('updates', null);
-  const current = process.versions.electron;
-  const latest = saved?.latest || null;
-  return { current, chromium: process.versions.chrome, latest, status: evaluate(current, latest), checkedAt: saved?.checkedAt || 0, error: saved?.error || null };
+  const m = mode();
+  const current = m === 'release' ? app.getVersion() : process.versions.electron;
+  const latest = saved?.mode === m ? saved?.latest || null : null;
+  const status = m === 'release' ? (latest && compare(latest, current) > 0 ? 'update-available' : latest ? 'up-to-date' : 'unknown')
+    : evaluate(current, latest);
+  return { mode: m, current, appVersion: app.getVersion(), electron: process.versions.electron, chromium: process.versions.chrome,
+    latest, status, releaseUrl: saved?.releaseUrl || `https://github.com/${REPO}/releases/latest`,
+    checkedAt: saved?.checkedAt || 0, error: saved?.error || null };
 }
 
 async function check() {
-  const url = process.env.PB_UPDATE_URL || 'https://registry.npmjs.org/electron/latest';
+  const m = mode();
+  const url = process.env.PB_UPDATE_URL || (m === 'release' ? `https://api.github.com/repos/${REPO}/releases/latest` : 'https://registry.npmjs.org/electron/latest');
   try {
     const res = await net.fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { version } = await res.json();
-    if (!/^\d+\.\d+\.\d+/.test(version || '')) throw new Error('bad version');
-    db.kv.set('updates', { latest: version, checkedAt: Date.now(), error: null });
+    if (!res.ok) throw new Error(res.status === 404 && m === 'release' ? 'no releases published yet' : `HTTP ${res.status}`);
+    const body = await res.json();
+    const version = String((m === 'release' ? body.tag_name : body.version) || '').replace(/^v/, '');
+    if (!/^\d+\.\d+\.\d+/.test(version)) throw new Error('bad version');
+    const releaseUrl = m === 'release' && /^https:\/\/github\.com\//.test(body.html_url || '') ? body.html_url : null;
+    db.kv.set('updates', { mode: m, latest: version, releaseUrl, checkedAt: Date.now(), error: null });
   } catch (err) {
     const prev = db.kv.get('updates', {}) || {};
-    db.kv.set('updates', { ...prev, checkedAt: Date.now(), error: String(err.message || err) });
+    db.kv.set('updates', { ...(prev.mode === m ? prev : { mode: m }), checkedAt: Date.now(), error: String(err.message || err) });
   }
   const s = state();
   events.emit('change', s);
@@ -72,6 +86,12 @@ function sourceDir() {
 
 // Open Terminal running the update script (you see every step; nothing is installed if tests fail).
 async function runUpdate() {
+  if (mode() === 'release') { await shell.openExternal(state().releaseUrl); return true; }
+  if (process.platform !== 'darwin') {
+    await dialog.showMessageBox({ type: 'info', message: 'Update the engine from the project folder',
+      detail: 'Run: npm install electron@latest && npm test — then build again.' });
+    return false;
+  }
   const dir = sourceDir();
   if (!dir) {
     await dialog.showMessageBox({ type: 'warning', message: 'Can’t find the browser’s source folder',
@@ -89,6 +109,16 @@ async function runUpdate() {
 async function prompt() {
   const s = state();
   const parent = BaseWindow.getFocusedWindow() || undefined;
+  if (s.mode === 'release') {
+    const opts = { type: 'info', buttons: s.status === 'update-available' ? ['Download', 'Later'] : ['Check again', 'OK'], defaultId: 0, cancelId: 1,
+      message: s.status === 'update-available' ? `Personal Browser ${s.latest} is available` : s.status === 'up-to-date' ? 'Personal Browser is up to date' : 'Couldn’t check for updates',
+      detail: [`You have ${s.current} (Chromium ${s.chromium}).`, s.error && `Last check failed: ${s.error}`].filter(Boolean).join('\n') };
+    const { response } = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
+    if (response !== 0) return false;
+    if (s.status === 'update-available') return runUpdate();
+    const n = await check(); if (n.status === 'update-available') return prompt();
+    return false;
+  }
   const urgent = s.status === 'unsupported';
   const detail = [
     `Engine now: Electron ${s.current} (Chromium ${s.chromium})`,
@@ -104,4 +134,4 @@ async function prompt() {
   return false;
 }
 
-module.exports = { start, check, state, evaluate, compare, prompt, runUpdate, sourceDir, on: (...a) => events.on(...a) };
+module.exports = { start, check, state, evaluate, compare, prompt, runUpdate, sourceDir, mode, on: (...a) => events.on(...a) };

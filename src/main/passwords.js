@@ -1,6 +1,7 @@
 // Saved passwords and form data (addresses, contact details).
-// Secrets are encrypted with Electron safeStorage (key kept in the macOS Keychain) before they touch the
-// database; if encryption isn't available we refuse to save rather than store plain text.
+// Secrets are encrypted with Electron safeStorage before they touch the database. The key is kept by the system:
+// macOS Keychain, Windows DPAPI (your Windows account), Linux Secret Service / KWallet. If there is no real key
+// store (some Linux setups fall back to a fixed "basic_text" key) we refuse to save rather than store weakly.
 const { safeStorage } = require('electron');
 const { EventEmitter } = require('events');
 const db = require('./db');
@@ -8,7 +9,14 @@ const db = require('./db');
 const events = new EventEmitter();
 const changed = () => events.emit('change');
 
-const available = async () => { try { return !!(await safeStorage.isAsyncEncryptionAvailable()); } catch { return false; } };
+const WEAK_LINUX = new Set(['basic_text', 'unknown']);
+const available = async () => {
+  try {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return false;
+    if (process.platform === 'linux' && WEAK_LINUX.has(safeStorage.getSelectedStorageBackend?.())) return false;
+    return true;
+  } catch { return false; }
+};
 async function encrypt(text) {
   if (!(await available())) throw new Error('Encryption is not available — not saving');
   return safeStorage.encryptStringAsync(String(text));

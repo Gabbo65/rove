@@ -100,14 +100,14 @@
     <h2>Passwords</h2>
     <div class="card">
       <div class="row">
-        <div><div class="label">Offer to save passwords</div><div class="hint">Never in InPrivate windows. Passwords are encrypted with a key kept in your Mac’s Keychain.</div></div>
+        <div><div class="label">Offer to save passwords</div><div class="hint">Never in InPrivate windows. Passwords are encrypted with a key kept by your system (Mac Keychain, Windows account, Linux keyring).</div></div>
         <label class="switch"><input type="checkbox" data-setting="offerSavePasswords"><span></span></label>
       </div>
       <div class="row">
         <div><div class="label">Suggest saved passwords when signing in</div><div class="hint">Click a login field to pick an account. Passwords are only filled when you choose one.</div></div>
         <label class="switch"><input type="checkbox" data-setting="autofillPasswords"><span></span></label>
       </div>
-      <div class="row warn" id="enc-warn" hidden>Encryption isn’t available on this Mac right now, so passwords can’t be saved.</div>
+      <div class="row warn" id="enc-warn" hidden>Secure storage isn’t available on this computer right now, so passwords can’t be saved. (On Linux, install and unlock a keyring such as GNOME Keyring or KWallet.)</div>
     </div>
     <div class="card">
       <div class="row"><input id="pw-search" class="field" placeholder="Search passwords" spellcheck="false"></div>
@@ -160,7 +160,7 @@
         <div class="actions"><button class="btn" id="ab-check">Check now</button><button class="btn primary" id="ab-update" hidden>Update now</button></div>
       </div>
       <div class="row">
-        <div class="label">Check for engine updates automatically</div>
+        <div class="label">Check for updates automatically</div>
         <label class="switch"><input type="checkbox" data-setting="updateCheck"><span></span></label>
       </div>
     </div>

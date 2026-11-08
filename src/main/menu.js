@@ -11,18 +11,23 @@ function build(hub) {
     if (wc) wc.setZoomLevel(step === 0 ? 0 : Math.max(-4, Math.min(5, wc.getZoomLevel() + step)));
   };
 
+  const isMac = process.platform === 'darwin';
+  const updatesItem = { label: 'Check for Updates…', click: () => require('./updates').check().then(() => require('./updates').prompt()) };
+  const settingsItem = { label: isMac ? 'Settings…' : 'Settings', accelerator: 'CmdOrCtrl+,', click: () => hub.openInternal('settings') };
+  // Mac: the app menu in the top bar. Windows / Linux: no menu bar is shown, but these shortcuts still work.
   const template = [
-    { label: app.getName(), submenu: [
+    ...(isMac ? [{ label: app.getName(), submenu: [
       { role: 'about' },
-      { label: 'Check for Updates…', click: () => require('./updates').check().then(() => require('./updates').prompt()) },
+      updatesItem,
       { type: 'separator' },
-      { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: () => hub.openInternal('settings') },
+      settingsItem,
       { type: 'separator' },
       { role: 'services' }, { type: 'separator' },
       { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' },
       { role: 'quit' },
-    ] },
+    ] }] : []),
     { label: 'File', submenu: [
+      ...(isMac ? [] : [settingsItem, updatesItem, { type: 'separator' }]),
       { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: () => (win() ? win().newTab() : hub.create()) },
       { label: 'New Window', accelerator: 'CmdOrCtrl+N', click: () => hub.create() },
       { label: 'New InPrivate Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => hub.create({ isPrivate: true }) },
@@ -32,6 +37,7 @@ function build(hub) {
       { type: 'separator' },
       { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => { const w = win(); if (w?.active) w.close(w.active); } },
       { label: 'Close Window', accelerator: 'CmdOrCtrl+Shift+W', click: () => win()?.base.close() },
+      ...(isMac ? [] : [{ type: 'separator' }, { role: 'quit', label: 'Exit' }]),
     ] },
     { label: 'Edit', submenu: [
       { role: 'undo' }, { role: 'redo' }, { type: 'separator' },
@@ -78,7 +84,7 @@ function build(hub) {
       ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ label: `Tab ${n}`, accelerator: `CmdOrCtrl+${n}`, click: () => hub.selectTab(n - 1) })),
       { label: 'Last Tab', accelerator: 'CmdOrCtrl+9', click: () => hub.selectTab(-1) },
     ] },
-    { role: 'windowMenu' },
+    ...(isMac ? [{ role: 'windowMenu' }] : []),
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

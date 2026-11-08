@@ -1,0 +1,46 @@
+# Runs the full test suite on macOS, Windows and Linux for every push and pull request.
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Test (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npm test
+
+      - name: Linux desktop bits (virtual screen, keyring for saved passwords)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb gnome-keyring dbus-x11 libsecret-1-0
+      - name: Test (Linux)
+        if: runner.os == 'Linux'
+        env:
+          XDG_CURRENT_DESKTOP: GNOME
+        run: |
+          dbus-run-session -- bash -c '
+            echo -n "ci" | gnome-keyring-daemon --unlock --components=secrets,pkcs11 >/dev/null
+            xvfb-run -a --server-args="-screen 0 1440x900x24" npm test -- --no-sandbox
+          '

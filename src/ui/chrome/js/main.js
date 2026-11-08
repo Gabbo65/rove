@@ -50,7 +50,7 @@ pb.on('update', (s) => {
   updateBtn.hidden = !show;
   updateBtn.classList.toggle('urgent', s.status === 'unsupported');
   updateBtn.textContent = s.status === 'unsupported' ? 'Update now' : 'Update';
-  updateBtn.title = `Browser engine: Electron ${s.current} → ${s.latest}`;
+  updateBtn.title = s.mode === 'release' ? `Personal Browser ${s.current} → ${s.latest}` : `Browser engine: Electron ${s.current} → ${s.latest}`;
 });
 updateBtn.onclick = () => pb.send('update:open');
 
@@ -68,7 +68,7 @@ $('menu-btn').onclick = async () => {
     { id: 'favbar', label: 'Show favorites bar', checked: !!currentSettings.showFavoritesBar },
     { type: 'separator' },
     { id: 'settings', label: 'Settings' },
-    { id: 'update', label: 'Check for engine updates' },
+    { id: 'update', label: 'Check for updates' },
   ]);
   if (c === 'tab') pb.send('tab:new', {});
   if (c === 'win') pb.send('win:new', {});

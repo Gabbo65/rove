@@ -1,6 +1,9 @@
 // Small helpers shared by the toolbar UI modules.
 export const $ = (id) => document.getElementById(id);
 export const pb = window.pb;
+// "Open in background" modifier: ⌘-click on Mac, Ctrl-click on Windows / Linux (on a Mac Ctrl-click is a right-click).
+export const IS_MAC = /Mac/.test(navigator.platform);
+export const bgClick = (e) => (IS_MAC ? e.metaKey : e.ctrlKey);
 
 export const ICON = {
   close: '<svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13"/></svg>',

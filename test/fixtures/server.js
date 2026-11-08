@@ -58,6 +58,11 @@ function start() {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify([q, [`${q} one`, `${q} two`, `${q} three`]]));
     }
+    if (u.pathname === '/gh-latest') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      const v = u.searchParams.get('v') || '0.0.1';
+      return res.end(JSON.stringify({ tag_name: `v${v}`, html_url: `https://github.com/Gabbo65/personal-browser/releases/tag/v${v}` }));
+    }
     if (u.pathname === '/npm-latest') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ name: 'electron', version: u.searchParams.get('v') || '0.0.1' }));

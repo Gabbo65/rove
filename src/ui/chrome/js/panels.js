@@ -1,5 +1,5 @@
 // History popup and downloads panel (toolbar buttons right of the address bar).
-import { $, pb, faviconNode, hostOf, timeLabel, fmtBytes } from './util.js';
+import { $, pb, faviconNode, hostOf, timeLabel, fmtBytes, bgClick } from './util.js';
 import * as popups from './popups.js';
 
 // ---------- history popup ----------
@@ -24,7 +24,7 @@ async function openHistory() {
       Object.assign(document.createElement('div'), { className: 'row-sub', textContent: hostOf(h.url) }));
     row.append(faviconNode(h.favicon, hostOf(h.url)), text,
       Object.assign(document.createElement('div'), { className: 'row-meta', textContent: timeLabel(h.t) }));
-    row.onclick = (e) => { popups.closeAll(); pb.send('fav:open', { url: h.url, disposition: e.metaKey ? 'background' : 'current' }); };
+    row.onclick = (e) => { popups.closeAll(); pb.send('fav:open', { url: h.url, disposition: bgClick(e) ? 'background' : 'current' }); };
     row.addEventListener('auxclick', (e) => { if (e.button === 1) pb.send('fav:open', { url: h.url, disposition: 'background' }); });
     return row;
   }));

@@ -251,3 +251,9 @@ body.no-favbar #favbar { display: none; }
 /* Favicons belong to the tab / favorite: dragging by them drags the item, not the picture. */
 .tab, .favitem { user-select: none; -webkit-user-drag: none; }
 .tab img, .tab svg, .favitem img, .favitem svg { -webkit-user-drag: none; user-select: none; pointer-events: none; }
+
+/* Windows / Linux: the system's minimize / maximize / close buttons sit at the top right of the tab strip. */
+.os-win32 .traffic-space, .os-linux .traffic-space { width: 8px; }
+.os-win32 #tabstrip { padding-right: 146px; }
+.os-linux #tabstrip { padding-right: 110px; }
+body.fullscreen #tabstrip { padding-right: 8px; }

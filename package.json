@@ -11,14 +11,125 @@
     "install-app": "npm test && npm run package && ditto 'dist/Personal Browser-darwin-arm64/Personal Browser.app' '/Applications/Personal Browser.app'",
     "test": "electron test/run.js",
     "test:compact": "electron test/run.js --compact",
-    "update-engine": "zsh scripts/update-engine.sh"
+    "update-engine": "zsh scripts/update-engine.sh",
+    "dist": "electron-builder --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:linux": "electron-builder --linux --publish never"
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
-    "electron": "^45.2.3"
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
     "ws": "^8.22.1"
+  },
+  "author": {
+    "name": "Gabbo65"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gabbo65/personal-browser.git"
+  },
+  "homepage": "https://github.com/Gabbo65/personal-browser",
+  "build": {
+    "appId": "io.github.gabbo65.personalbrowser",
+    "productName": "Personal Browser",
+    "copyright": "Copyright © 2026 Gabbo65",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "src/**/*",
+      "remote/**/*",
+      "build/icon.png",
+      "!src/main/build-info.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": "-",
+      "hardenedRuntime": false
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Network;WebBrowser",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "maintainer": "Gabbo65",
+      "synopsis": "Personal browser with a phone remote"
+    },
+    "deb": {
+      "depends": [
+        "libsecret-1-0",
+        "libnss3",
+        "libgtk-3-0",
+        "libxss1",
+        "libasound2"
+      ]
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Gabbo65",
+        "repo": "personal-browser",
+        "releaseType": "draft"
+      }
+    ]
   }
 }

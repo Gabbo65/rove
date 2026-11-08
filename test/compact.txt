@@ -8,7 +8,9 @@
 # Keep here: tests for the new feature + tests for anything the change touched.
 # After an install (full suite green) this list is cleared for the next round.
 
-# Last round: horizontal drag for tabs and favorites, icon grab, wide favorite passing a narrow one
-02-tabs > drag a tab
-03-favorites > drag
-03-favorites > wide favorite
+
+# This round: Windows / Linux support (window buttons, Ctrl labels, password key store, release updates)
+17-platform
+09-updates
+12-passwords
+08-ui

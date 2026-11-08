@@ -14,6 +14,8 @@ const LISTEN = new Set([
   'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt',
 ]);
 
+platformLabels();
+
 contextBridge.exposeInMainWorld('pb', {
   send(channel, ...args) { if (SEND.has(channel)) ipcRenderer.send(channel, ...args); },
   invoke(channel, ...args) { return INVOKE.has(channel) ? ipcRenderer.invoke(channel, ...args) : Promise.reject(new Error('blocked')); },
@@ -24,3 +26,31 @@ contextBridge.exposeInMainWorld('pb', {
     return () => ipcRenderer.removeListener(channel, handler);
   },
 });
+
+// Shortcut labels are written Mac-style (⇧⌘T); on Windows / Linux show them as Ctrl+Shift+T.
+// Also tags <html> with the system (os-darwin / os-win32 / os-linux) for platform styling.
+function platformLabels() {
+  const os = process.platform;
+  const tag = () => document.documentElement?.classList.add(`os-${os}`);
+  if (document.documentElement) tag(); else document.addEventListener('readystatechange', tag, { once: true });
+  if (os === 'darwin') return;
+  const NAMES = { '⌃': 'Ctrl', '⌘': 'Ctrl', '⌥': 'Alt', '⇧': 'Shift' };
+  const ORDER = ['Ctrl', 'Alt', 'Shift'];
+  const conv = (s) => s.replace(/([⌃⌥⇧⌘]+)(\S)/g, (_m, mods, key) =>
+    [...new Set([...mods].map((m) => NAMES[m]))].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).concat(key).join('+'));
+  const fix = (node) => {
+    if (node.nodeType === 3) { if (/[⌃⌥⇧⌘]/.test(node.data)) node.data = conv(node.data); return; }
+    if (node.nodeType !== 1) return;
+    if (node.title && /[⌃⌥⇧⌘]/.test(node.title)) node.title = conv(node.title);
+    for (const c of node.childNodes) fix(c);
+  };
+  document.addEventListener('DOMContentLoaded', () => {
+    fix(document.body);
+    new MutationObserver((list) => {
+      for (const m of list) {
+        if (m.type === 'childList') m.addedNodes.forEach(fix);
+        else fix(m.target);
+      }
+    }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title'] });
+  });
+}
