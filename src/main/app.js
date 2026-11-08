@@ -8,6 +8,7 @@ const rename = require('./rename');
 // Data folder: <app data>/rove (tests and --user-data-dir pick their own). The first start after the
 // rename from "Personal Browser" copies the old folder over; saved passwords are re-locked once it's open.
 const TEST = !!process.env.PB_TEST;
+let started = false; // the first browser window exists
 const customDir = (TEST && !process.env.PB_NEW_DATA_DIR) || app.commandLine.hasSwitch('user-data-dir');
 const dataDir = customDir ? app.getPath('userData') : rename.folders().newDir;
 if (!customDir) {
@@ -113,6 +114,7 @@ function boot() {
     let remoteError = null;
     try { await remote.start(hub); } catch (err) { remoteError = err; console.error('Phone remote failed to start:', err); }
     const first = hub.create({ pinned: db.kv.get('pinnedTabs', []) });
+    started = true;
     if (remoteError) {
       const why = /openssl|ENOENT/i.test(String(remoteError.message || remoteError)) ? 'a tool it needs (openssl) isn’t on this computer' : String(remoteError.message || remoteError);
       setTimeout(() => first?.showToast?.(`The phone remote couldn’t start: ${why}. Everything else works.`, 15000), 1500);
@@ -121,10 +123,19 @@ function boot() {
     hub.onUiReady = (win) => win.sendUI('update', updates.state());
     updates.start();
     app.emit('pb-ready', hub);
+    // PB_SMOKE: CI start-up check of the real app (not test mode) — report and exit once the window is up.
+    if (process.env.PB_SMOKE) {
+      setTimeout(() => {
+        const ok = hub.all().length > 0 && hub.all()[0].base.isVisible();
+        console.log(ok ? 'SMOKE OK: window open' : 'SMOKE FAIL: no visible window');
+        app.exit(ok ? 0 : 1);
+      }, 4000);
+    }
   }).catch((err) => {
     // Never fail silently (a hidden app with no window): say what went wrong.
     console.error('Startup failed:', err);
     if (TEST) return;
+    if (process.env.PB_SMOKE) { console.log('SMOKE FAIL: startup error'); app.exit(1); return; }
     require('electron').dialog.showErrorBox('Rove couldn’t start', String(err?.stack || err));
     app.exit(1);
   });
@@ -134,7 +145,9 @@ function boot() {
     if (w) { if (w.base.isMinimized()) w.base.restore(); w.base.focus(); } else hub.create();
   });
   app.on('activate', () => { if (!hub.all().length && app.isReady()) hub.create(); });
-  // Windows / Linux: closing the last window quits (Mac apps stay open). Tests open and close windows freely.
-  app.on('window-all-closed', () => { if (process.platform !== 'darwin' && !process.env.PB_TEST) app.quit(); });
+  // Windows / Linux: closing the last window quits (Mac apps stay open). Only once the browser is up — hidden
+  // helper windows during startup (e.g. the one-time import) close before the first real window exists.
+  // Tests open and close windows freely.
+  app.on('window-all-closed', () => { if (process.platform !== 'darwin' && started && !TEST) app.quit(); });
   app.on('will-quit', () => db.close());
 }

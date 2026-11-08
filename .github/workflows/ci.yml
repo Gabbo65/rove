@@ -28,7 +28,9 @@ jobs:
 
       - name: Test (macOS)
         if: runner.os == 'macOS'
-        run: npm test
+        run: |
+          npm test
+          PB_SMOKE=1 PB_PORT=0 npx electron . --user-data-dir="$RUNNER_TEMP/rove-smoke"
 
       # Like a normal Windows PC: no openssl (GitHub's machines have one from Git; real PCs don't).
       - name: Test (Windows, without openssl)
@@ -38,6 +40,11 @@ jobs:
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -and -not (Test-Path (Join-Path $_ 'openssl.exe')) }) -join ';'
           if (Get-Command openssl -ErrorAction SilentlyContinue) { throw 'openssl still on PATH' }
           npm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Start the REAL app once (not test mode), like a fresh install, and check its window appears.
+          $env:PB_SMOKE = '1'; $env:PB_PORT = '0'
+          npx electron . --user-data-dir="$env:RUNNER_TEMP\rove-smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Rove did not start' }
 
       - name: Linux desktop bits (virtual screen, keyring for saved passwords)
         if: runner.os == 'Linux'
@@ -51,5 +58,6 @@ jobs:
         run: |
           dbus-run-session -- bash -c '
             echo -n "ci" | gnome-keyring-daemon --unlock --components=secrets,pkcs11 >/dev/null
-            xvfb-run -a --server-args="-screen 0 1440x900x24" npm test -- --no-sandbox
+            xvfb-run -a --server-args="-screen 0 1440x900x24" npm test -- --no-sandbox &&
+            PB_SMOKE=1 PB_PORT=0 xvfb-run -a npx electron . --no-sandbox --user-data-dir="$RUNNER_TEMP/rove-smoke"
           '

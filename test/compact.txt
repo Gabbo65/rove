@@ -22,3 +22,6 @@
 # Phone remote certificate without openssl
 06-remote
 16-passkeys-badge > phone mirror
+
+# Real startup (no test mode)
+01-core
