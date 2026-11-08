@@ -65,9 +65,17 @@ app.once('pb-ready', async (hub) => {
     // Load a URL in the active tab and wait for it to finish
     async go(input, win = hub.current()) {
       const tab = win.active;
-      const stopped = tab.wc ? new Promise((r) => tab.wc.once('did-stop-loading', r)) : Promise.resolve();
+      // Wait for THIS navigation to commit (an earlier one — e.g. a form submit — may still be finishing and
+      // would otherwise end the wait early, leaving us on the previous page), then for it to finish loading.
+      const wc0 = tab.wc;
+      const committed = wc0 ? new Promise((r) => {
+        const on = () => { wc0.removeListener('did-navigate', on); wc0.removeListener('did-navigate-in-page', onPage); r(); };
+        const onPage = (_e, _u, main) => { if (main) on(); };
+        wc0.on('did-navigate', on);
+        wc0.on('did-navigate-in-page', onPage);
+      }) : Promise.resolve();
       win.navigate(input);
-      await Promise.race([stopped, sleep(10000)]);
+      await Promise.race([committed, sleep(10000)]);
       await until(() => !tab.loading && tab.wc && !tab.wc.isLoading(), { message: `load ${input}` });
       return tab;
     },
