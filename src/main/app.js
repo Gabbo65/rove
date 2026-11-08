@@ -109,6 +109,7 @@ function boot() {
     if (w) { if (w.base.isMinimized()) w.base.restore(); w.base.focus(); } else hub.create();
   });
   app.on('activate', () => { if (!hub.all().length && app.isReady()) hub.create(); });
-  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+  // Windows / Linux: closing the last window quits (Mac apps stay open). Tests open and close windows freely.
+  app.on('window-all-closed', () => { if (process.platform !== 'darwin' && !process.env.PB_TEST) app.quit(); });
   app.on('will-quit', () => db.close());
 }

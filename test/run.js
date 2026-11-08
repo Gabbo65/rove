@@ -18,6 +18,14 @@ const compact = process.argv.includes('--compact')
   ? fs.readFileSync(path.join(__dirname, 'compact.txt'), 'utf8').split('\n').map((l) => l.replace(/#.*/, '').trim()).filter(Boolean)
     .map((l) => { const [f, n = ''] = l.split('>').map((x) => x.trim().toLowerCase()); return { f, n }; })
   : null;
+// If the app quits before every test ran, that's a failure — never a silent "success".
+let finished = false;
+app.on('will-quit', (e) => {
+  if (finished) return;
+  e.preventDefault();
+  console.error('\n✗ The app quit before the tests finished.');
+  app.exit(1);
+});
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pb-test-'));
 app.setPath('userData', path.join(tmp, 'profile'));
 app.setPath('downloads', path.join(tmp, 'Downloads'));
@@ -164,6 +172,7 @@ app.once('pb-ready', async (hub) => {
   for (const w of hub.all()) w.base.close();
   await sleep(300);
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
+  finished = true;
   app.exit(failed ? 1 : 0);
 });
 
