@@ -3,14 +3,21 @@ const { app, session } = require('electron');
 const path = require('path');
 const protocolMod = require('./protocol');
 
-// Display name for menus — but keep the data folder (favorites, history, remote key) where it already is.
-const dataDir = app.getPath('userData');
-app.setName('Personal Browser');
+const rename = require('./rename');
+
+// Data folder: <app data>/rove (tests and --user-data-dir pick their own). The first start after the
+// rename from "Personal Browser" copies the old folder over; saved passwords are re-locked once it's open.
+const TEST = !!process.env.PB_TEST;
+const customDir = (TEST && !process.env.PB_NEW_DATA_DIR) || app.commandLine.hasSwitch('user-data-dir');
+const dataDir = customDir ? app.getPath('userData') : rename.folders().newDir;
+if (!customDir) {
+  try { rename.copyIfNeeded(dataDir, rename.folders().oldDir); } catch (err) { console.error('Moving data from Personal Browser failed:', err); }
+}
+app.setName('Rove');
 app.setPath('userData', dataDir);
 
 protocolMod.registerScheme(); // must happen before 'ready'
 
-const TEST = !!process.env.PB_TEST;
 if (!TEST && !app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -85,6 +92,12 @@ function boot() {
 
   app.whenReady().then(async () => {
     db.open(path.join(app.getPath('userData'), 'browser.db'));
+    const moved = await rename.rekeyIfPending(db.get(), app.getPath('userData')).catch((err) => ({ lost: -1, error: String(err) }));
+    if (moved?.lost) {
+      require('electron').dialog.showMessageBox({ type: 'warning', message: 'Saved passwords weren’t moved to Rove',
+        detail: `Rove couldn’t unlock the passwords saved in Personal Browser (${moved.error || 'access denied'}). `
+          + 'Everything else was moved. Your old passwords are still in Personal Browser, untouched.' });
+    }
     settings.load();
     require('electron').nativeTheme.themeSource = settings.get('theme');
     require('./passwords').on('change', () => hub.toPages('settings', 'passwords-changed'));

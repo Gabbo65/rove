@@ -8,10 +8,13 @@
 # Keep here: tests for the new feature + tests for anything the change touched.
 # After an install (full suite green) this list is cleared for the next round.
 
-
-# This round: Windows / Linux support (window buttons, Ctrl labels, password key store, release updates)
+# Windows / Linux support
 17-platform
 09-updates
 12-passwords
 08-ui
 10-settings > download folder
+
+# Rename to Rove: data folder + saved passwords move, names
+18-rename
+07-sleep-migrate

@@ -63,7 +63,7 @@ class Win {
       width: 1280, height: 860, minWidth: 600, minHeight: 400,
       ...frameOptions(isPrivate),
       backgroundColor: themeBackground(isPrivate), show: false,
-      title: isPrivate ? 'InPrivate' : 'Personal Browser',
+      title: isPrivate ? 'InPrivate' : 'Rove',
     });
 
     this.chrome = new WebContentsView({ webPreferences: UI_PREFS });

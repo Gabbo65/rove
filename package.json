@@ -1,14 +1,14 @@
 {
-  "name": "personal-browser",
+  "name": "rove",
   "version": "0.1.0",
-  "description": "Personal customizable browser with phone remote",
+  "description": "Rove — a free, fully customizable browser with a phone remote",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "icon": "electron build/make-icon.js",
-    "package": "node scripts/write-build-info.js && electron-packager . 'Personal Browser' --platform=darwin --arch=arm64 --icon=build/icon.icns --out=dist --overwrite --asar --app-bundle-id=local.personal.browser --ignore='^/(prototype|dist|test|_backup_v1|scripts|build/icon\\.iconset)' && codesign --force --deep --sign - 'dist/Personal Browser-darwin-arm64/Personal Browser.app'",
-    "install-app": "npm test && npm run package && ditto 'dist/Personal Browser-darwin-arm64/Personal Browser.app' '/Applications/Personal Browser.app'",
+    "package": "node scripts/write-build-info.js && electron-packager . 'Rove' --platform=darwin --arch=arm64 --icon=build/icon.icns --out=dist --overwrite --asar --app-bundle-id=io.github.gabbo65.rove --ignore='^/(prototype|dist|test|_backup_v1|scripts|build/icon\\.iconset)' && codesign --force --deep --sign - 'dist/Rove-darwin-arm64/Rove.app'",
+    "install-app": "npm test && npm run package && ditto 'dist/Rove-darwin-arm64/Rove.app' '/Applications/Rove.app'",
     "test": "electron test/run.js",
     "test:compact": "electron test/run.js --compact",
     "update-engine": "zsh scripts/update-engine.sh",
@@ -31,12 +31,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Gabbo65/personal-browser.git"
+    "url": "https://github.com/Gabbo65/rove.git"
   },
-  "homepage": "https://github.com/Gabbo65/personal-browser",
+  "homepage": "https://github.com/Gabbo65/rove",
   "build": {
-    "appId": "io.github.gabbo65.personalbrowser",
-    "productName": "Personal Browser",
+    "appId": "io.github.gabbo65.rove",
+    "productName": "Rove",
     "copyright": "Copyright © 2026 Gabbo65",
     "directories": {
       "output": "release",
@@ -111,7 +111,8 @@
         }
       ],
       "maintainer": "Gabbo65",
-      "synopsis": "Personal browser with a phone remote"
+      "synopsis": "Free, customizable browser with a phone remote",
+      "executableName": "rove"
     },
     "deb": {
       "depends": [
@@ -122,14 +123,16 @@
         "libasound2"
       ]
     },
-    "artifactName": "Personal-Browser-${os}-${arch}.${ext}",
+    "artifactName": "Rove-${os}-${arch}.${ext}",
     "publish": [
       {
         "provider": "github",
         "owner": "Gabbo65",
-        "repo": "personal-browser",
+        "repo": "rove",
         "releaseType": "draft"
       }
     ]
-  }
+  },
+  "productName": "Rove",
+  "license": "GPL-3.0-or-later"
 }

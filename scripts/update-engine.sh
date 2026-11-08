@@ -23,4 +23,4 @@ echo "→ Tests passed. Building and installing…"
 npm run install-app
 trap - ERR
 rm -f package.json.before-update package-lock.json.before-update
-echo "✓ Updated. Quit and reopen Personal Browser to use the new engine."
+echo "✓ Updated. Quit and reopen Rove to use the new engine."

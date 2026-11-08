@@ -79,7 +79,7 @@ function register(hub) {
   ipcMain.on('af:passkey-blocked', (e) => {
     const ctx = from(e);
     if (!ctx) return;
-    ctx.win.showToast('This site asked for a passkey. Passkeys aren’t supported in Personal Browser yet — choose “Try another way” or sign in with your password.');
+    ctx.win.showToast('This site asked for a passkey. Passkeys aren’t supported in Rove yet — choose “Try another way” or sign in with your password.');
   });
 
   // Answer from the toolbar's save popup.

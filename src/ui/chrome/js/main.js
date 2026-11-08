@@ -25,7 +25,7 @@ pb.on('state', (s) => {
   const active = s.tabs.find((t) => t.active) || null;
   showTab(active);
   $('star').classList.toggle('on', !!active && favbar.isFavorite(active.url));
-  document.title = active ? active.title : 'Personal Browser';
+  document.title = active ? active.title : 'Rove';
 });
 
 pb.on('favorites', (list) => {
@@ -50,7 +50,7 @@ pb.on('update', (s) => {
   updateBtn.hidden = !show;
   updateBtn.classList.toggle('urgent', s.status === 'unsupported');
   updateBtn.textContent = s.status === 'unsupported' ? 'Update now' : 'Update';
-  updateBtn.title = s.mode === 'release' ? `Personal Browser ${s.current} → ${s.latest}` : `Browser engine: Electron ${s.current} → ${s.latest}`;
+  updateBtn.title = s.mode === 'release' ? `Rove ${s.current} → ${s.latest}` : `Browser engine: Electron ${s.current} → ${s.latest}`;
 });
 updateBtn.onclick = () => pb.send('update:open');
 

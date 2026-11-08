@@ -172,7 +172,7 @@ function renderAbout(a) {
   const release = a.mode === 'release';
   $('ab-versions').textContent = `Version ${a.appVersion || '?'} · Electron ${a.electron || a.current} · Chromium ${a.chromium}`;
   const text = release
-    ? { 'up-to-date': 'Personal Browser is up to date', 'update-available': 'A new version is available', unknown: 'Not checked yet' }[a.status]
+    ? { 'up-to-date': 'Rove is up to date', 'update-available': 'A new version is available', unknown: 'Not checked yet' }[a.status]
     : { 'up-to-date': 'Your browser engine is up to date', 'update-available': 'An engine update is available',
       unsupported: 'Your browser engine no longer gets security fixes', unknown: 'Not checked yet' }[a.status];
   $('ab-update').textContent = release ? 'Download' : 'Update now';

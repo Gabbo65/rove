@@ -1,14 +1,14 @@
 <div align="center">
 
-# Personal Browser
+# Rove `*`
 
 **A browser that belongs to you: fast, private, and built to be shaped by you.**
 
 Windows · macOS · Linux
 
-[![Tests](https://github.com/Gabbo65/personal-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabbo65/personal-browser/actions/workflows/ci.yml)
+[![Tests](https://github.com/Gabbo65/rove/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabbo65/rove/actions/workflows/ci.yml)
 
-[Download](#download) · [Why](#why-personal-browser) · [Features](#features) · [Phone remote](#phone-remote) · [Shortcuts](#keyboard-shortcuts) · [Roadmap](#roadmap) · [Build from source](#build-from-source)
+[Download](#download) · [Why](#why-rove) · [Features](#features) · [Phone remote](#phone-remote) · [Shortcuts](#keyboard-shortcuts) · [Roadmap](#roadmap) · [Build from source](#build-from-source) · [License](#license)
 
 </div>
 
@@ -20,15 +20,15 @@ Pick your system, download, open. That's it.
 
 | System | Download | Notes |
 |---|---|---|
-| **Windows** (most PCs) | [Personal-Browser-win-x64.exe](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-win-x64.exe) | Installer |
-| Windows on ARM (Surface Pro X, Copilot+ PCs) | [Personal-Browser-win-arm64.exe](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-win-arm64.exe) | Installer |
-| **macOS** with Apple chip (M1 or newer) | [Personal-Browser-mac-arm64.dmg](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-mac-arm64.dmg) | Drag to Applications |
-| macOS with Intel chip | [Personal-Browser-mac-x64.dmg](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-mac-x64.dmg) | Drag to Applications |
-| **Linux**, any distribution | [Personal-Browser-linux-x86_64.AppImage](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-linux-x86_64.AppImage) | Portable, no install |
-| Ubuntu / Debian / Mint | [Personal-Browser-linux-amd64.deb](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-linux-amd64.deb) | Package |
-| Linux on ARM (Raspberry Pi 4/5, ARM laptops) | [AppImage](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-linux-arm64.AppImage) · [.deb](https://github.com/Gabbo65/personal-browser/releases/latest/download/Personal-Browser-linux-arm64.deb) | |
+| **Windows** (most PCs) | [Rove-win-x64.exe](https://github.com/Gabbo65/rove/releases/latest/download/Rove-win-x64.exe) | Installer |
+| Windows on ARM (Surface Pro X, Copilot+ PCs) | [Rove-win-arm64.exe](https://github.com/Gabbo65/rove/releases/latest/download/Rove-win-arm64.exe) | Installer |
+| **macOS** with Apple chip (M1 or newer) | [Rove-mac-arm64.dmg](https://github.com/Gabbo65/rove/releases/latest/download/Rove-mac-arm64.dmg) | Drag to Applications |
+| macOS with Intel chip | [Rove-mac-x64.dmg](https://github.com/Gabbo65/rove/releases/latest/download/Rove-mac-x64.dmg) | Drag to Applications |
+| **Linux**, any distribution | [Rove-linux-x86_64.AppImage](https://github.com/Gabbo65/rove/releases/latest/download/Rove-linux-x86_64.AppImage) | Portable, no install |
+| Ubuntu / Debian / Mint | [Rove-linux-amd64.deb](https://github.com/Gabbo65/rove/releases/latest/download/Rove-linux-amd64.deb) | Package |
+| Linux on ARM (Raspberry Pi 4/5, ARM laptops) | [AppImage](https://github.com/Gabbo65/rove/releases/latest/download/Rove-linux-arm64.AppImage) · [.deb](https://github.com/Gabbo65/rove/releases/latest/download/Rove-linux-arm64.deb) | |
 
-All versions and release notes: **[Releases](https://github.com/Gabbo65/personal-browser/releases)**
+All versions and release notes: **[Releases](https://github.com/Gabbo65/rove/releases)**
 
 > **Not sure which one?**
 > **Windows:** take the first one.
@@ -42,21 +42,21 @@ The app isn't signed with a paid Apple / Microsoft certificate yet, so your syst
 - **Windows:** "Windows protected your PC" → click **More info** → **Run anyway**.
 - **macOS:** right-click the app → **Open** → **Open**. If macOS says the app "is damaged", run this once in Terminal:
   ```bash
-  xattr -cr "/Applications/Personal Browser.app"
+  xattr -cr "/Applications/Rove.app"
   ```
 - **Linux (AppImage):** make it executable (right-click → *Properties* → *Allow executing*), or run:
   ```bash
-  chmod +x Personal-Browser-linux-*.AppImage
+  chmod +x Rove-linux-*.AppImage
   ```
   To save passwords on Linux you need a keyring (GNOME Keyring or KWallet). Most desktops have one already.
 
 ---
 
-## Why Personal Browser
+## Why Rove
 
 Most browsers are built around someone else's priorities: an account to sign into, a store to sell through, a feed to keep you scrolling, settings you aren't allowed to touch.
 
-**Personal Browser is built around one idea: freedom.** It's your tool, so you should be able to see how it works, change how it looks and behaves, and make it do things no other browser lets you do.
+**Rove is built around one idea: freedom.** To rove is to wander freely, anywhere, and that's the point. It's your tool, so you should be able to see how it works, change how it looks and behaves, and make it do things no other browser lets you do.
 
 - **No account, no cloud, no tracking.** Your history, favorites and passwords stay on your computer.
 - **Open and readable.** Plain JavaScript, no hidden services. If you can read code, you can read all of it.
@@ -156,12 +156,13 @@ Two modes:
 The direction is simple: **everything about the browser should be yours to change.**
 
 - **Full customization:** rearrange and restyle the interface, themes, toolbar layout, and per-site behavior.
-- **Script injection:** run your own JavaScript and CSS on the sites you choose, to fix, automate or reshape any page.
-- **Power-user toolkit:** built-in tools for inspecting and experimenting with how websites work. Details to come.
+- **Hex:** Rove's built-in toolkit for people who like to take things apart.
+  - **Script injection:** run your own JavaScript and CSS on the sites you choose, to fix, automate or reshape any page.
+  - **Power tools:** for inspecting and experimenting with how websites work. Details to come.
 - **Phone remote, hardened:** stronger pairing and encryption before it's recommended outside your home network.
 - **Signed installers** and automatic in-app updates.
 
-Ideas and feedback are welcome in [Issues](https://github.com/Gabbo65/personal-browser/issues).
+Ideas and feedback are welcome in [Issues](https://github.com/Gabbo65/rove/issues).
 
 ---
 
@@ -170,8 +171,8 @@ Ideas and feedback are welcome in [Issues](https://github.com/Gabbo65/personal-b
 Requires [Node.js](https://nodejs.org) 22 or newer and Git.
 
 ```bash
-git clone https://github.com/Gabbo65/personal-browser.git
-cd personal-browser
+git clone https://github.com/Gabbo65/rove.git
+cd rove
 npm install
 npm start
 ```
@@ -205,6 +206,7 @@ src/main/               main process
   remote.js stream.js   phone remote (HTTPS + WebSocket) and live mirror (WebRTC)
   updates.js            update checks (GitHub Releases, or the engine when run from source)
   migrate.js            one-time import from the first version
+  rename.js             one-time move of data + saved passwords from the old name (Personal Browser)
   protocol.js ipc.js menu.js permissions.js urls.js paths.js
 src/preload/            the only bridges into pages (allow-listed)
 src/ui/chrome/          browser UI (pb://chrome)
@@ -218,3 +220,13 @@ test/                   test runner, local test web server, specs
 </details>
 
 Built with [Electron](https://www.electronjs.org) (Chromium + Node.js).
+
+---
+
+## License
+
+Rove is free software, released under the **[GNU General Public License v3.0](LICENSE)** (or any later version).
+
+You may use, study, share and change it. If you share a modified version, it has to stay free under the same license, so every copy of Rove stays open for the people who use it.
+
+Rove comes with no warranty. See the [LICENSE](LICENSE) for the full terms.

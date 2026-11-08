@@ -31,7 +31,7 @@ function evaluate(current, latest) {
   return parse(latest)[0] - parse(current)[0] >= SUPPORTED_MAJORS ? 'unsupported' : 'update-available';
 }
 
-const REPO = 'Gabbo65/personal-browser';
+const REPO = 'Gabbo65/rove';
 const mode = () => process.env.PB_UPDATE_MODE || (sourceDir() ? 'source' : 'release');
 
 function state() {
@@ -111,7 +111,7 @@ async function prompt() {
   const parent = BaseWindow.getFocusedWindow() || undefined;
   if (s.mode === 'release') {
     const opts = { type: 'info', buttons: s.status === 'update-available' ? ['Download', 'Later'] : ['Check again', 'OK'], defaultId: 0, cancelId: 1,
-      message: s.status === 'update-available' ? `Personal Browser ${s.latest} is available` : s.status === 'up-to-date' ? 'Personal Browser is up to date' : 'Couldn’t check for updates',
+      message: s.status === 'update-available' ? `Rove ${s.latest} is available` : s.status === 'up-to-date' ? 'Rove is up to date' : 'Couldn’t check for updates',
       detail: [`You have ${s.current} (Chromium ${s.chromium}).`, s.error && `Last check failed: ${s.error}`].filter(Boolean).join('\n') };
     const { response } = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
     if (response !== 0) return false;

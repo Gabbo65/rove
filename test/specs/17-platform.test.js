@@ -47,7 +47,7 @@ module.exports = [
         s = await updates.check();
         t.assert.equal(s.status, 'update-available');
         t.assert.equal(s.latest, '99.0.0');
-        t.assert.equal(s.releaseUrl, 'https://github.com/Gabbo65/personal-browser/releases/tag/v99.0.0');
+        t.assert.equal(s.releaseUrl, 'https://github.com/Gabbo65/rove/releases/tag/v99.0.0');
         await t.until(async () => (await t.ui(`document.getElementById('update-btn').title`)).includes('99.0.0'), { message: 'toolbar shows the new version' });
       } finally {
         delete process.env.PB_UPDATE_MODE;
