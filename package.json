@@ -122,7 +122,7 @@
         "libasound2"
       ]
     },
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Personal-Browser-${os}-${arch}.${ext}",
     "publish": [
       {
         "provider": "github",

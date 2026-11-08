@@ -62,6 +62,6 @@ const remoteBtn = $('remote-btn');
 remoteBtn.onclick = () => pb.send('qr:toggle');
 pb.on('remote-status', ({ clients }) => {
   remoteBtn.classList.toggle('on', clients > 0);
-  $('remote-label').textContent = clients === 0 ? 'No remote' : clients === 1 ? 'iPhone connected' : `${clients} remotes`;
+  $('remote-label').textContent = clients === 0 ? 'No remote' : clients === 1 ? 'Phone connected' : `${clients} remotes`;
 });
 pb.on('qr-visible', (v) => remoteBtn.classList.toggle('qr-open', !!v));
