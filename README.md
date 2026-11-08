@@ -1,6 +1,8 @@
 <div align="center">
 
-# Rove `*`
+<img src="build/icon.png" alt="Rove logo: a white asterisk inside a lavender hexagon" width="112">
+
+# Rove
 
 **A browser that belongs to you: fast, private, and built to be shaped by you.**
 
