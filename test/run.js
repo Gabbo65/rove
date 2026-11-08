@@ -60,7 +60,8 @@ app.once('pb-ready', async (hub) => {
     ui: (code, win = hub.current()) => win.chrome.webContents.executeJavaScript(code),
     hudJs: (code, win = hub.current()) => win.hud.webContents.executeJavaScript(code),
     // Run JS in a tab's page (userGesture so fullscreen etc. are allowed)
-    page: (code, tab = hub.current().active) => tab.wc.executeJavaScript(code, true),
+    page: (code, tab = hub.current().active) => tab.wc.executeJavaScript(code, true)
+      .catch((e) => { throw new Error(`${e.message}\n      in page ${tab.wc.getURL()}: ${code.replace(/\s+/g, ' ').slice(0, 120)}`); }),
     // Load a URL in the active tab and wait for it to finish
     async go(input, win = hub.current()) {
       const tab = win.active;

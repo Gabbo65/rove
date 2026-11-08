@@ -1,6 +1,7 @@
 // Browser settings: defaults + validation, stored in the database (kv table).
 // Anything that changes a setting goes through set(); listeners get the new values.
 const { EventEmitter } = require('events');
+const path = require('path');
 const { kv } = require('./db');
 
 const events = new EventEmitter();
@@ -30,7 +31,7 @@ const SCHEMA = {
   },
   searchSuggestions: { default: true, check: bool },                         // ask the engine for suggestions while typing
   // Downloads
-  downloadDir: { default: '', check: (v) => (typeof v === 'string' && (v === '' || v.startsWith('/')) ? v : undefined) },
+  downloadDir: { default: '', check: (v) => (typeof v === 'string' && (v === '' || path.isAbsolute(v)) ? v : undefined) },
   askDownloadLocation: { default: false, check: bool },
   // Passwords & autofill
   offerSavePasswords: { default: true, check: bool },

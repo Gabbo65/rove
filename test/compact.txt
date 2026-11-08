@@ -14,3 +14,4 @@
 09-updates
 12-passwords
 08-ui
+10-settings > download folder

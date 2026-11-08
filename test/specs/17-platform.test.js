@@ -40,7 +40,7 @@ module.exports = [
         process.env.PB_UPDATE_URL = t.url('/gh-latest?v=' + app.getVersion());
         let s = await updates.check();
         t.assert.equal(s.mode, 'release');
-        t.assert.equal(s.status, 'up-to-date');
+        t.assert.equal(s.status, 'up-to-date', `check error: ${s.error} (version ${app.getVersion()})`);
         process.env.PB_UPDATE_URL = t.url('/gh-latest?v=99.0.0');
         s = await updates.check();
         t.assert.equal(s.status, 'update-available');
