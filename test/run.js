@@ -162,7 +162,7 @@ app.once('pb-ready', async (hub) => {
       } catch (err) {
         failed++;
         failures.push({ file, name: test.name, err });
-        console.log(`  ✗ ${test.name}\n      ${String(err?.stack || err).split('\n').slice(0, 4).join('\n      ')}`);
+        console.log(`  ✗ ${test.name}\n      ${String(err?.stack || err).split('\n').slice(0, 14).join('\n      ')}`);
       }
     }
   }

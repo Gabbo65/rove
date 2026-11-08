@@ -18,6 +18,8 @@ module.exports = [
       fs.mkdirSync(path.join(oldDir, 'GPUCache'), { recursive: true });
       fs.copyFileSync(path.join(require('electron').app.getPath('userData'), 'browser.db'), path.join(oldDir, 'browser.db'));
       fs.writeFileSync(path.join(oldDir, 'remote.json'), '{"keep":true}');
+      // Windows keeps the encryption key in the profile's "Local State" — it moves with the folder.
+      try { fs.copyFileSync(path.join(require('electron').app.getPath('userData'), 'Local State'), path.join(oldDir, 'Local State')); } catch {}
       fs.writeFileSync(path.join(oldDir, 'SingletonLock'), 'x');
 
       t.assert.equal(rename.copyIfNeeded(newDir, oldDir), true);
