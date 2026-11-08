@@ -8,20 +8,4 @@
 # Keep here: tests for the new feature + tests for anything the change touched.
 # After an install (full suite green) this list is cleared for the next round.
 
-# Windows / Linux support
-17-platform
-09-updates
-12-passwords
-08-ui
-10-settings > download folder
-
-# Rename to Rove: data folder + saved passwords move, names
-18-rename
-07-sleep-migrate
-
-# Phone remote certificate without openssl
-06-remote
-16-passkeys-badge > phone mirror
-
-# Real startup (no test mode)
-01-core
+# (empty — cleared after the 2026-11-08 install)
