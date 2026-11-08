@@ -7,13 +7,22 @@ async function submitLogin(t, user, pass, tab) {
     document.getElementById('pass').value = ${JSON.stringify(pass)};
     document.getElementById('login').requestSubmit(); 1`, tab);
 }
-// Real (trusted) mouse click at the middle of the in-page chooser.
+// Real (trusted) mouse click on the in-page chooser. Waits until it has stopped moving (it fills in its rows
+// right after appearing — on slow machines a click at that moment hits nothing), and clicks again if needed.
 async function clickChooser(t, tab) {
-  const r = await t.until(() => t.page(`(() => { const h = document.querySelector('pb-autofill');
-      if (!h || h.style.display === 'none') return null; const b = h.getBoundingClientRect(); return [b.left + 40, b.top + 36]; })()`, tab),
-  { message: 'chooser visible' });
-  const [x, y] = r.map(Math.round);
-  for (const type of ['mouseMove', 'mouseDown', 'mouseUp']) tab.wc.sendInputEvent({ type, x, y, button: 'left', clickCount: 1 });
+  const where = () => t.page(`(() => { const h = document.querySelector('pb-autofill');
+      if (!h || h.style.display === 'none') return null; const b = h.getBoundingClientRect();
+      return b.height > 40 ? [Math.round(b.left + 40), Math.round(b.top + 36), Math.round(b.height)].join(',') : null; })()`, tab);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let last = null;
+    const spot = await t.until(async () => { const now = await where(); const same = now && now === last; last = now; return same && now; },
+      { message: 'chooser visible and settled', interval: 120 });
+    const [x, y] = spot.split(',').map(Number);
+    for (const type of ['mouseMove', 'mouseDown', 'mouseUp']) tab.wc.sendInputEvent({ type, x, y, button: 'left', clickCount: 1 });
+    const closed = await t.until(async () => !(await where()), { timeout: 1500, message: 'chooser closed' }).then(() => true, () => false);
+    if (closed) return;
+  }
+  throw new Error('chooser never took the click');
 }
 const clearAll = (t) => t.db().exec('DELETE FROM credentials; DELETE FROM password_never; DELETE FROM form_profiles;');
 
