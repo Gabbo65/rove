@@ -109,12 +109,24 @@ function boot() {
     menu.build(hub);
     try { await migrate.run(); } catch (err) { console.error('Import of old data failed:', err); }
     hub.setRemote(remote);
-    await remote.start(hub);
-    hub.create({ pinned: db.kv.get('pinnedTabs', []) });
+    // The phone remote is optional: if it can't start, the browser still opens and says why.
+    let remoteError = null;
+    try { await remote.start(hub); } catch (err) { remoteError = err; console.error('Phone remote failed to start:', err); }
+    const first = hub.create({ pinned: db.kv.get('pinnedTabs', []) });
+    if (remoteError) {
+      const why = /openssl|ENOENT/i.test(String(remoteError.message || remoteError)) ? 'a tool it needs (openssl) isn’t on this computer' : String(remoteError.message || remoteError);
+      setTimeout(() => first?.showToast?.(`The phone remote couldn’t start: ${why}. Everything else works.`, 15000), 1500);
+    }
     updates.on('change', (s) => { hub.broadcastUI('update', s); hub.toPages('settings', 'update', s); });
     hub.onUiReady = (win) => win.sendUI('update', updates.state());
     updates.start();
     app.emit('pb-ready', hub);
+  }).catch((err) => {
+    // Never fail silently (a hidden app with no window): say what went wrong.
+    console.error('Startup failed:', err);
+    if (TEST) return;
+    require('electron').dialog.showErrorBox('Rove couldn’t start', String(err?.stack || err));
+    app.exit(1);
   });
 
   app.on('second-instance', () => {
