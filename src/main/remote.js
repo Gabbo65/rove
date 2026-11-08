@@ -1,14 +1,15 @@
 // Phone remote: HTTPS + WebSocket server the iPhone page connects to, input injection, and the mirror.
 //
 // NOTE: the security parts — remoteKey(), tlsCert(), and the key check in the WebSocket 'connection'
-// handler — are moved here byte-for-byte from the old main.js and intentionally NOT changed.
+// handler — were moved here byte-for-byte from the old main.js and are intentionally left alone.
+// Exception (approved 2026-11-08): tlsCert() now makes the certificate in-process instead of calling openssl,
+// so the remote works on Windows. Same kind of certificate; the key check is unchanged.
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const https = require('https');
 const crypto = require('crypto');
-const { execFileSync } = require('child_process');
 const { WebSocketServer } = require('ws');
 const QRCode = require('qrcode');
 const { REMOTE_HTML } = require('./paths');
@@ -45,22 +46,36 @@ function remoteKey() {
 }
 
 // Self-signed HTTPS certificate for the current Wi-Fi address (iPhone Safari may refuse plain HTTP).
-// Made once per address with macOS's built-in openssl, then reused.
+// Made once per address, then reused (an existing certificate is never replaced, so a phone that already
+// trusts it keeps working). Built in-process — RSA 2048 key from Node's crypto, X.509 by node-forge —
+// so it works on every system (an earlier version needed the openssl tool, which Windows doesn't have).
 function tlsCert(ip) {
   const dir = path.join(app.getPath('userData'), 'tls');
   const keyFile = path.join(dir, `${ip}.key`);
   const certFile = path.join(dir, `${ip}.crt`);
-  if (!fs.existsSync(certFile)) {
+  if (!fs.existsSync(certFile) || !fs.existsSync(keyFile)) {
     fs.mkdirSync(dir, { recursive: true });
-    const conf = path.join(dir, 'openssl.cnf');
-    fs.writeFileSync(conf, [
-      '[req]', 'distinguished_name=dn', 'x509_extensions=ext', 'prompt=no',
-      '[dn]', 'CN=Personal Browser Remote',
-      '[ext]', `subjectAltName=IP:${ip},IP:127.0.0.1,DNS:localhost`,
-      'basicConstraints=CA:FALSE', 'keyUsage=digitalSignature,keyEncipherment', 'extendedKeyUsage=serverAuth',
-    ].join('\n'));
-    execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '825',
-      '-keyout', keyFile, '-out', certFile, '-config', conf], { stdio: 'ignore' });
+    const forge = require('node-forge');
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const keyPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+    const cert = forge.pki.createCertificate();
+    cert.publicKey = forge.pki.publicKeyFromPem(publicKey.export({ type: 'spki', format: 'pem' }));
+    cert.serialNumber = '01' + crypto.randomBytes(15).toString('hex'); // positive, random
+    cert.validity.notBefore = new Date(Date.now() - 60_000);
+    cert.validity.notAfter = new Date(Date.now() + 825 * 24 * 3600_000);
+    const subject = [{ name: 'commonName', value: 'Rove Remote' }];
+    cert.setSubject(subject);
+    cert.setIssuer(subject);
+    cert.setExtensions([
+      { name: 'basicConstraints', cA: false, critical: true },
+      { name: 'keyUsage', digitalSignature: true, keyEncipherment: true, critical: true },
+      { name: 'extKeyUsage', serverAuth: true },
+      { name: 'subjectAltName', altNames: [{ type: 7, ip }, { type: 7, ip: '127.0.0.1' }, { type: 2, value: 'localhost' }] },
+      { name: 'subjectKeyIdentifier' },
+    ]);
+    cert.sign(forge.pki.privateKeyFromPem(keyPem), forge.md.sha256.create());
+    fs.writeFileSync(keyFile, keyPem, { mode: 0o600 });
+    fs.writeFileSync(certFile, forge.pki.certificateToPem(cert));
   }
   return { key: fs.readFileSync(keyFile), cert: fs.readFileSync(certFile) };
 }

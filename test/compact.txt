@@ -18,3 +18,7 @@
 # Rename to Rove: data folder + saved passwords move, names
 18-rename
 07-sleep-migrate
+
+# Phone remote certificate without openssl
+06-remote
+16-passkeys-badge > phone mirror

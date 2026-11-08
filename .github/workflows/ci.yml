@@ -26,9 +26,18 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Test (macOS / Windows)
-        if: runner.os != 'Linux'
+      - name: Test (macOS)
+        if: runner.os == 'macOS'
         run: npm test
+
+      # Like a normal Windows PC: no openssl (GitHub's machines have one from Git; real PCs don't).
+      - name: Test (Windows, without openssl)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -and -not (Test-Path (Join-Path $_ 'openssl.exe')) }) -join ';'
+          if (Get-Command openssl -ErrorAction SilentlyContinue) { throw 'openssl still on PATH' }
+          npm test
 
       - name: Linux desktop bits (virtual screen, keyring for saved passwords)
         if: runner.os == 'Linux'
