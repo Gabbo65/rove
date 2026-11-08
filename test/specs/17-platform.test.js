@@ -37,7 +37,9 @@ module.exports = [
       await t.fresh();
       process.env.PB_UPDATE_MODE = 'release';
       try {
-        process.env.PB_UPDATE_URL = t.url('/gh-latest?v=' + app.getVersion());
+        // (under the test runner the version can be "0.0"; a real build has package.json's x.y.z)
+        const cur = /^\d+\.\d+\.\d+/.test(app.getVersion()) ? app.getVersion() : `${app.getVersion()}.0`;
+        process.env.PB_UPDATE_URL = t.url('/gh-latest?v=' + cur);
         let s = await updates.check();
         t.assert.equal(s.mode, 'release');
         t.assert.equal(s.status, 'up-to-date', `check error: ${s.error} (version ${app.getVersion()})`);
