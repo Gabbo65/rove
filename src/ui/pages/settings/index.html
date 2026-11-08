@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src data: https: http:; style-src 'self' pb: 'unsafe-inline'; script-src 'self'">
+<title>Settings</title>
+<link rel="stylesheet" href="pb://shared/theme.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body>
+<aside>
+  <h1>Settings</h1>
+  <nav id="nav">
+    <a href="#general">General</a>
+    <a href="#search">Search &amp; address bar</a>
+    <a href="#tabs">Tabs</a>
+    <a href="#downloads">Downloads</a>
+    <a href="#passwords">Passwords</a>
+    <a href="#forms">Addresses &amp; more</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#about">About</a>
+  </nav>
+</aside>
+<main>
+  <section id="general">
+    <h2>General</h2>
+    <div class="card">
+      <div class="row col">
+        <div class="label">When a new window opens</div>
+        <label class="radio"><input type="radio" name="startPage" value="newtab"> Open the New Tab page</label>
+        <label class="radio"><input type="radio" name="startPage" value="url"> Open a specific page</label>
+        <input id="startUrl" class="field" placeholder="https://example.com" spellcheck="false">
+        <div class="hint" id="startUrl-hint"></div>
+      </div>
+      <div class="row">
+        <div><div class="label">Appearance</div><div class="hint">Light, dark, or follow your Mac</div></div>
+        <div class="seg" id="theme"><button data-v="system">System</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div>
+      </div>
+      <div class="row">
+        <div><div class="label">Show the favorites bar</div><div class="hint">⇧⌘B</div></div>
+        <label class="switch"><input type="checkbox" data-setting="showFavoritesBar"><span></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section id="search">
+    <h2>Search &amp; address bar</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Search engine</div><div class="hint">Used for searches from the address bar and the New Tab page</div></div>
+        <select id="searchEngine" class="field small"></select>
+      </div>
+      <div class="row col" id="custom-box" hidden>
+        <input id="custom-name" class="field" placeholder="Name (e.g. Startpage)">
+        <input id="custom-url" class="field" placeholder="Search address with %s where the words go" spellcheck="false">
+        <input id="custom-suggest" class="field" placeholder="Suggestions address with %s (optional)" spellcheck="false">
+        <div class="actions"><span class="hint" id="custom-hint"></span><button class="btn primary" id="custom-save">Save</button></div>
+      </div>
+      <div class="row">
+        <div><div class="label">Show search suggestions while typing</div>
+          <div class="hint">What you type in the address bar is sent to your search engine to get suggestions. Your history, favorites and open tabs are always matched on this Mac only.</div></div>
+        <label class="switch"><input type="checkbox" data-setting="searchSuggestions"><span></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section id="tabs">
+    <h2>Tabs</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Sleeping tabs</div><div class="hint">Tabs you haven’t looked at for a while are unloaded to free memory. They reload, with their back/forward history, when you click them. Tabs playing sound never sleep.</div></div>
+        <label class="switch"><input type="checkbox" data-setting="sleepingTabs"><span></span></label>
+      </div>
+      <div class="row">
+        <div class="label">Put tabs to sleep after</div>
+        <select id="sleepAfterMinutes" class="field small">
+          <option value="5">5 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option>
+          <option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="720">12 hours</option>
+        </select>
+      </div>
+      <div class="row"><div class="hint">Pinned tabs come back every time you start the browser. Right-click a tab to pin it. Search your tabs with ⇧⌘A.</div></div>
+    </div>
+  </section>
+
+  <section id="downloads">
+    <h2>Downloads</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Location</div><div class="hint mono" id="dl-folder"></div></div>
+        <div class="actions"><button class="btn" id="dl-reset" hidden>Use Downloads</button><button class="btn" id="dl-change">Change…</button></div>
+      </div>
+      <div class="row">
+        <div class="label">Ask where to save each file</div>
+        <label class="switch"><input type="checkbox" data-setting="askDownloadLocation"><span></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section id="passwords">
+    <h2>Passwords</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Offer to save passwords</div><div class="hint">Never in InPrivate windows. Passwords are encrypted with a key kept in your Mac’s Keychain.</div></div>
+        <label class="switch"><input type="checkbox" data-setting="offerSavePasswords"><span></span></label>
+      </div>
+      <div class="row">
+        <div><div class="label">Suggest saved passwords when signing in</div><div class="hint">Click a login field to pick an account. Passwords are only filled when you choose one.</div></div>
+        <label class="switch"><input type="checkbox" data-setting="autofillPasswords"><span></span></label>
+      </div>
+      <div class="row warn" id="enc-warn" hidden>Encryption isn’t available on this Mac right now, so passwords can’t be saved.</div>
+    </div>
+    <div class="card">
+      <div class="row"><input id="pw-search" class="field" placeholder="Search passwords" spellcheck="false"></div>
+      <div id="pw-list"></div>
+      <div class="row hint" id="pw-empty">No saved passwords yet</div>
+    </div>
+    <div class="card" id="never-card" hidden>
+      <div class="row"><div class="label">Never saved</div></div>
+      <div id="never-list"></div>
+    </div>
+  </section>
+
+  <section id="forms">
+    <h2>Addresses &amp; more</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Save and fill addresses and contact info</div><div class="hint">After you fill a form, the browser offers to remember it. Click a matching field to fill it again.</div></div>
+        <label class="switch"><input type="checkbox" data-setting="autofillForms"><span></span></label>
+      </div>
+    </div>
+    <div class="card">
+      <div id="pf-list"></div>
+      <div class="row hint" id="pf-empty">No saved addresses yet</div>
+      <div class="row"><button class="btn" id="pf-add">Add address</button></div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <h2>Privacy</h2>
+    <div class="card">
+      <div class="row col">
+        <div class="label">Clear browsing data</div>
+        <label class="check"><input type="checkbox" id="clr-history" checked> Browsing history</label>
+        <label class="check"><input type="checkbox" id="clr-cookies" checked> Cookies and site data <span class="hint">— signs you out of most sites</span></label>
+        <label class="check"><input type="checkbox" id="clr-cache" checked> Cached images and files</label>
+        <label class="check"><input type="checkbox" id="clr-downloads"> Download list <span class="hint">(files stay on disk)</span></label>
+        <label class="check"><input type="checkbox" id="clr-closed"> Recently closed tabs</label>
+        <div class="actions"><span class="hint" id="clr-done"></span><button class="btn danger-fill" id="clr-go">Clear now</button></div>
+      </div>
+      <div class="row"><div class="hint">InPrivate windows (⇧⌘N) keep no history, cookies or cache after you close them.</div></div>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>About</h2>
+    <div class="card">
+      <div class="row"><div class="label">Personal Browser</div><div class="hint mono" id="ab-versions"></div></div>
+      <div class="row">
+        <div><div class="label" id="ab-status">Checking…</div><div class="hint" id="ab-detail"></div></div>
+        <div class="actions"><button class="btn" id="ab-check">Check now</button><button class="btn primary" id="ab-update" hidden>Update now</button></div>
+      </div>
+      <div class="row">
+        <div class="label">Check for engine updates automatically</div>
+        <label class="switch"><input type="checkbox" data-setting="updateCheck"><span></span></label>
+      </div>
+    </div>
+  </section>
+</main>
+
+<template id="pw-row">
+  <div class="row item">
+    <div class="site"><div class="label origin"></div><div class="hint user"></div></div>
+    <div class="secret mono">••••••••</div>
+    <div class="actions">
+      <button class="icon reveal" title="Show password">👁</button>
+      <button class="icon copy" title="Copy password">⧉</button>
+      <button class="icon edit" title="Edit">✎</button>
+      <button class="icon del" title="Delete">✕</button>
+    </div>
+  </div>
+</template>
+<script src="settings.js"></script>
+</body>
+</html>

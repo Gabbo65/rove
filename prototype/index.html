@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shared Text</title>
+<style>
+  :root { --bg:#f5f5f7; --fg:#1d1d1f; --card:#fff; --muted:#86868b; --ok:#34c759; --bad:#ff3b30; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000; --fg:#f5f5f7; --card:#1c1c1e; --muted:#98989d; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 16px -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    display: flex; flex-direction: column;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h1 { font-size: 20px; margin: 0; }
+  #status { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  #dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+  #dot.on { background: var(--ok); }
+  textarea {
+    flex: 1; width: 100%; resize: none; border: none; outline: none;
+    background: var(--card); color: var(--fg); border-radius: 14px; padding: 16px;
+    font: 17px/1.5 -apple-system, system-ui, sans-serif; /* ≥16px stops iOS zoom-on-focus */
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Shared Text</h1>
+    <div id="status"><span id="dot"></span><span id="label">Connecting…</span></div>
+  </header>
+  <textarea id="box" placeholder="Type here — every connected device sees it." autofocus></textarea>
+
+<script>
+  const box = document.getElementById('box');
+  const dot = document.getElementById('dot');
+  const label = document.getElementById('label');
+  const clientId = Math.random().toString(36).slice(2);
+  let timer;
+
+  // Send edits (lightly debounced)
+  box.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fetch('/text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: box.value, client: clientId })
+      }).catch(() => {});
+    }, 150);
+  });
+
+  // Receive edits from other devices
+  const events = new EventSource('/events');
+  events.onopen = () => { dot.classList.add('on'); label.textContent = 'Live'; };
+  events.onerror = () => { dot.classList.remove('on'); label.textContent = 'Reconnecting…'; };
+  events.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.sender === clientId || msg.text === box.value) return; // our own echo
+    const { selectionStart: s, selectionEnd: end } = box;
+    const focused = document.activeElement === box;
+    box.value = msg.text;
+    if (focused) box.setSelectionRange(Math.min(s, box.value.length), Math.min(end, box.value.length));
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https: http:; style-src 'self' pb: 'unsafe-inline'; script-src 'self'">
+<title>Personal Browser</title>
+<link rel="stylesheet" href="pb://shared/theme.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="top">
+    <!-- Row 1: tab strip -->
+    <div id="tabstrip">
+      <div class="traffic-space"></div>
+      <div id="tabs"></div>
+      <button id="newtab" class="icon" title="New tab (⌘T)"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></button>
+      <div class="drag-fill"></div>
+      <span id="private-badge" hidden>InPrivate</span>
+      <button id="tabsearch-btn" class="icon" title="Search tabs (⇧⌘A)">
+        <svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
+      </button>
+    </div>
+
+    <!-- Row 2: toolbar -->
+    <header id="toolbar">
+      <button id="back" class="icon" title="Back (⌘[)"><svg viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></svg></button>
+      <button id="forward" class="icon" title="Forward (⌘])"><svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+      <button id="reload" class="icon" title="Reload (⌘R)">
+        <svg class="i-reload" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/></svg>
+        <svg class="i-stop" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+      <form id="urlform" autocomplete="off">
+        <span id="lock"></span>
+        <input id="url" spellcheck="false" autocomplete="off" placeholder="Search or enter web address">
+        <button type="button" id="key-btn" class="icon" title="Save password" hidden>
+          <svg viewBox="0 0 16 16"><circle cx="5" cy="10.5" r="2.8"/><path d="M7 8.5l6-6M11 4.5l1.8 1.8M9.5 6l1.5 1.5"/></svg>
+        </button>
+        <button type="button" id="star" class="icon" title="Add this page to favorites (⌘D)">
+          <svg viewBox="0 0 16 16"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></svg>
+        </button>
+      </form>
+      <button id="hist-btn" class="icon" title="History (⌘Y)">
+        <svg viewBox="0 0 16 16"><path d="M2.6 8a5.4 5.4 0 1 0 1.6-3.8M2.5 2.5v2.7h2.7M8 5v3.2l2.2 1.4"/></svg>
+      </button>
+      <button id="dl-btn" class="icon" title="Downloads (⇧⌘J)" hidden>
+        <svg viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10"/></svg>
+      </button>
+      <button id="remote-btn" title="Show or hide the phone QR code (⇧⌘Q)">
+        <span class="dot"></span><span id="remote-label">No remote</span>
+      </button>
+      <button id="update-btn" hidden>Update</button>
+      <button id="menu-btn" class="icon" title="Settings and more">
+        <svg viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12.5" cy="8" r=".9"/></svg>
+      </button>
+    </header>
+
+    <!-- Row 3: favorites bar -->
+    <nav id="favbar"><div id="favs"></div><div id="fav-empty">Add pages with the ☆ in the address bar</div></nav>
+    <div id="loading"></div>
+  </div>
+
+  <!-- The page shows here (a separate view underneath). Popups below are drawn over it while open. -->
+  <main id="stage">
+    <div id="hist-panel" class="popup" hidden>
+      <div class="popup-head"><span>History</span></div>
+      <div id="hp-list"></div>
+      <div id="hp-empty" class="empty" hidden>Pages you visit show up here</div>
+      <button id="hp-more">Show more</button>
+    </div>
+
+    <div id="dl-panel" class="popup" hidden>
+      <div class="popup-head">
+        <span>Downloads</span>
+        <button id="dl-clear" class="link-btn" title="Remove finished downloads from the list">Clear</button>
+        <button id="dl-close" class="icon" title="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+      <div id="dl-list"></div>
+      <div id="dl-empty" class="empty">No downloads yet</div>
+    </div>
+  </main>
+
+  <div id="ts-panel" class="popup" hidden>
+    <div class="ts-search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+      <input id="ts-input" placeholder="Search tabs" spellcheck="false" autocomplete="off"></div>
+    <div id="ts-list"></div>
+  </div>
+
+  <div id="fav-pop" hidden>
+    <div id="fp-title">Edit favorite</div>
+    <label>Name<input id="fp-name" spellcheck="false" autocomplete="off"></label>
+    <label>URL<input id="fp-url" spellcheck="false" autocomplete="off"></label>
+    <div class="actions">
+      <button id="fp-remove" class="btn danger">Remove</button>
+      <span class="grow"></span>
+      <button id="fp-cancel" class="btn">Cancel</button>
+      <button id="fp-save" class="btn primary">Done</button>
+    </div>
+  </div>
+
+  <div id="save-pop" hidden>
+    <div id="sp-title">Save password?</div>
+    <div id="sp-sub"></div>
+    <div id="sp-fields">
+      <label>Username<input id="sp-user" spellcheck="false" autocomplete="off"></label>
+      <label>Password<input id="sp-pass" type="password" value="••••••••" disabled></label>
+    </div>
+    <div class="actions">
+      <button id="sp-never" class="btn danger">Never for this site</button>
+      <span class="grow"></span>
+      <button id="sp-later" class="btn">Not now</button>
+      <button id="sp-save" class="btn primary">Save</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

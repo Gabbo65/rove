@@ -1,0 +1,24 @@
+/* Colors shared by the browser UI and the built-in pages. Follows the app theme (system / light / dark). */
+:root {
+  color-scheme: light dark;
+  --strip: #e9e9ec; --chrome: #f7f7f8; --page: #f7f7f8; --card: #ffffff; --border: #d6d6da; --line: #e3e3e6;
+  --field: #ffffff; --fg: #1b1b1f; --muted: #6e6e76; --hover: rgba(0,0,0,.06); --press: rgba(0,0,0,.1);
+  --accent: #0f6cbd; --accent-fg: #ffffff; --ok: #2e9e4f; --danger: #c42b1c; --tab-hover: rgba(255,255,255,.55);
+  --shadow: 0 10px 34px rgba(0,0,0,.22), 0 0 0 1px var(--border);
+  --font: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --strip: #1f1f1f; --chrome: #2c2c2c; --page: #262626; --card: #2f2f2f; --border: #3d3d3d; --line: #3a3a3a;
+    --field: #1d1d1d; --fg: #f0f0f0; --muted: #a3a3a8; --hover: rgba(255,255,255,.08); --press: rgba(255,255,255,.14);
+    --accent: #4ca0f0; --accent-fg: #0b1b2b; --ok: #4cc26e; --danger: #ff6b5e; --tab-hover: rgba(255,255,255,.06);
+    --shadow: 0 10px 34px rgba(0,0,0,.5), 0 0 0 1px var(--border);
+  }
+}
+/* InPrivate windows: always dark, purple tint (like Edge). */
+.private {
+  color-scheme: dark;
+  --strip: #1a1326; --chrome: #2a1f3d; --page: #231a33; --card: #30244a; --border: #463862; --line: #3b2f55;
+  --field: #1c1529; --fg: #f3effa; --muted: #b6a9cf; --hover: rgba(255,255,255,.08); --press: rgba(255,255,255,.14);
+  --accent: #a98bff; --accent-fg: #1a1326; --tab-hover: rgba(255,255,255,.06);
+}

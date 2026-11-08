@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https: http:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>New Tab</title>
+<style>
+  :root { --bg: #f7f7f8; --fg: #1b1b1f; --muted: #6e6e76; --card: #fff; --line: #d6d6da; --accent: #0f6cbd; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #262626; --fg: #f0f0f0; --muted: #a3a3a8; --card: #333; --line: #444; --accent: #4ca0f0; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--fg);
+    font: 14px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 14vh 24px 40px; }
+  form { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 18px; background: var(--card);
+    border-radius: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.08), 0 0 0 1px var(--line); }
+  form:focus-within { box-shadow: 0 2px 14px rgba(0,0,0,.1), 0 0 0 2px var(--accent); }
+  form svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; flex: none; }
+  input { flex: 1; border: none; outline: none; background: transparent; color: var(--fg); font: inherit; font-size: 16px; }
+  #tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px; margin-top: 36px; }
+  .tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 10px;
+    border-radius: 12px; color: var(--fg); text-decoration: none; }
+  .tile:hover { background: color-mix(in srgb, var(--card) 70%, transparent); }
+  .icon { width: 48px; height: 48px; border-radius: 12px; background: var(--card); display: grid; place-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08); font-weight: 600; font-size: 18px; color: var(--accent); text-transform: uppercase; }
+  .icon img { width: 24px; height: 24px; }
+  .name { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #hint { color: var(--muted); font-size: 12px; text-align: center; margin-top: 36px; }
+</style>
+</head>
+<body>
+<main>
+  <form id="f" action="https://www.google.com/search">
+    <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+    <input name="q" placeholder="Search the web" autocomplete="off">
+  </form>
+  <div id="tiles"></div>
+  <div id="hint">Your favorites show up here.</div>
+</main>
+<script>
+  // Called by the browser with the favorites list.
+  window.showFavorites = (favs) => {
+    const tiles = document.getElementById('tiles');
+    document.getElementById('hint').hidden = favs.length > 0;
+    tiles.replaceChildren(...favs.map((f) => {
+      const a = document.createElement('a');
+      a.className = 'tile'; a.href = f.url; a.title = f.url;
+      const icon = document.createElement('div');
+      icon.className = 'icon';
+      const letter = (f.title || f.url).replace(/^https?:\/\/(www\.)?/, '')[0] || '•';
+      if (f.favicon) {
+        const img = document.createElement('img');
+        img.src = f.favicon;
+        img.onerror = () => { icon.textContent = letter; };
+        icon.append(img);
+      } else icon.textContent = letter;
+      const name = document.createElement('div');
+      name.className = 'name'; name.textContent = f.title;
+      a.append(icon, name);
+      return a;
+    }));
+  };
+  // Get favorites from the browser now, and again whenever they change.
+  if (window.internal) {
+    window.internal.on((type, data) => { if (type === 'favorites') window.showFavorites(data || []); });
+    window.internal.send('get-favorites');
+  }
+</script>
+</body>
+</html>

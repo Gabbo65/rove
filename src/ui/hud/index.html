@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' pb: 'unsafe-inline'; script-src 'self'">
+<title>HUD</title>
+<link rel="stylesheet" href="pb://shared/theme.css">
+<style>
+  /* This view is only as big as what it shows (it sits over the page's top-right corner). */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: transparent; font: 12px var(--font); color: var(--fg); overflow: hidden; }
+  [hidden] { display: none !important; }
+  #root { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 10px; padding: 8px 12px 14px 14px; }
+  #root:empty, #root.empty { padding: 0; }
+  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  #findbar { display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 4px 0 12px; border-radius: 10px;
+    background: var(--chrome); box-shadow: 0 6px 24px rgba(0,0,0,.2), 0 0 0 1px var(--border); }
+  #find-input { width: 220px; border: none; outline: none; background: transparent; color: var(--fg); font: inherit; font-size: 13px; }
+  #find-count { color: var(--muted); font-size: 12px; min-width: 44px; text-align: right; padding-right: 6px; font-variant-numeric: tabular-nums; }
+  #findbar.none #find-count { color: var(--danger); }
+  #findbar button { width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; color: var(--fg); display: grid; place-items: center; padding: 0; }
+  #findbar button:hover { background: var(--hover); }
+
+  #qr { width: 172px; padding: 12px; border-radius: 14px; text-align: center; background: rgba(255,255,255,.97); color: #1d1d1f;
+    box-shadow: 0 8px 30px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06); animation: pop .2s ease-out; }
+  #qr img { display: block; width: 148px; height: 148px; image-rendering: pixelated; margin: 0 auto 8px; }
+  .qr-title { font-weight: 600; font-size: 13px; }
+  .qr-sub { color: #6e6e73; font-size: 11px; margin-top: 2px; }
+  .qr-addr { color: #6e6e73; font: 10px ui-monospace, Menlo, monospace; margin-top: 6px; word-break: break-all; }
+  #toast { width: 330px; display: flex; gap: 10px; align-items: flex-start; padding: 12px 10px 12px 14px; border-radius: 10px;
+    background: var(--chrome); color: var(--fg); line-height: 1.45; box-shadow: 0 6px 24px rgba(0,0,0,.2), 0 0 0 1px var(--border); animation: pop .2s ease-out; }
+  #toast-text { flex: 1; }
+  #toast-close { border: none; background: transparent; color: var(--muted); font-size: 12px; padding: 2px 4px; border-radius: 4px; }
+  #toast-close:hover { background: var(--hover); }
+  @keyframes pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <div id="root">
+    <div id="findbar" hidden>
+      <input id="find-input" placeholder="Find on page" spellcheck="false" autocomplete="off">
+      <span id="find-count"></span>
+      <button id="find-prev" title="Previous (⇧⌘G)"><svg viewBox="0 0 16 16"><path d="M4 10l4-4 4 4"/></svg></button>
+      <button id="find-next" title="Next (⌘G)"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button>
+      <button id="find-close" title="Close (Esc)"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div id="toast" hidden><span id="toast-text"></span><button id="toast-close" title="Close">✕</button></div>
+    <div id="qr" hidden>
+      <img id="qr-img" alt="QR code">
+      <div class="qr-title" id="qr-title">Waiting for a device…</div>
+      <div class="qr-sub">Scan with your iPhone</div>
+      <div class="qr-addr" id="qr-addr"></div>
+    </div>
+  </div>
+  <script src="hud.js"></script>
+</body>
+</html>

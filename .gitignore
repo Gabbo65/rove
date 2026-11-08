@@ -1,0 +1,17 @@
+# Dependencies and builds (recreated by npm install / npm run package)
+node_modules/
+dist/
+build/icon.iconset/
+build-info.json
+
+# macOS / editors
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Secrets — never commit (the phone remote's key and certificate live in the app's profile, not here)
+.env*
+*.pem
+*.key
+*.p12

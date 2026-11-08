@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+  #c { position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%;
+    background: rgba(10,132,255,.35); border: 2px solid #0a84ff; box-shadow: 0 0 0 2px rgba(255,255,255,.8);
+    transition: transform .08s; }
+  #c.click { transform: scale(.6); }
+</style>
+</head>
+<body>
+<div id="c"></div>
+<script>
+  // Phone trackpad cursor. The main process moves this tiny view; pulse() animates a click.
+  let t;
+  window.pulse = () => { const c = document.getElementById('c'); c.classList.add('click'); clearTimeout(t); t = setTimeout(() => c.classList.remove('click'), 120); };
+</script>
+</body>
+</html>
