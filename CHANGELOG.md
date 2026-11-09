@@ -2,6 +2,23 @@
 
 All notable changes to Rove. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.1.2 — 2026-11-09
+
+### Phone remote: hardened
+- **New phones must be allowed on the computer** ("Allow / Don't allow"). An allowed phone gets its own key and reconnects without asking.
+- **Settings → Phone remote:**
+  - turn the remote off completely (then nothing listens on the network)
+  - see and remove paired phones
+  - make a new QR code that forgets every phone
+- **Stronger secret link:**
+  - a 128-bit key, checked in constant time
+  - after too many wrong tries, that address is refused for a while
+  - the key is removed from the phone's address bar and history right after scanning
+- Only the phone page itself can connect. Messages are size-limited, with a few phones at most.
+- The phone can only open web addresses, never local files. Site icons on the phone are limited to real images.
+- `remote.json` is readable only by your user account. The certificate files are written safely.
+- Update note: phones paired before 0.1.2 need to scan the QR code once more.
+
 ## 0.1.1 — 2026-11-09
 
 ### Security

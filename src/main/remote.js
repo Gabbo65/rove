@@ -1,10 +1,16 @@
-// Phone remote: HTTPS + WebSocket server the iPhone page connects to, input injection, and the mirror.
+// Phone remote: HTTPS + WebSocket server the phone page connects to, input injection, and the mirror.
 //
-// NOTE: the security parts — remoteKey(), tlsCert(), and the key check in the WebSocket 'connection'
-// handler — were moved here byte-for-byte from the old main.js and are intentionally left alone.
-// Exception (approved 2026-11-08): tlsCert() now makes the certificate in-process instead of calling openssl,
-// so the remote works on Windows. Same kind of certificate; the key check is unchanged.
-const { app } = require('electron');
+// Security (hardened in 0.1.2, approved by the owner 2026-11-09):
+//  • Secret link: a 128-bit key in the QR code, compared in constant time. Too many wrong keys from one
+//    address → that address is refused for a while.
+//  • Pairing: a NEW phone with the right key still has to be allowed on the computer ("Allow / Don't allow").
+//    An allowed phone gets its own device token and reconnects without asking. Phones can be removed in
+//    Settings, and "new link" changes the key and forgets every phone.
+//  • Only the phone page itself may connect (Origin check), messages are size-limited, a few phones at most.
+//  • The phone can only open web addresses (http/https) — never local files.
+//  • Can be turned off completely in Settings (nothing listens then).
+//  • Certificate: self-made per Wi-Fi address, in-process (node-forge), private key file readable only by you.
+const { app, dialog, BaseWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -15,10 +21,16 @@ const QRCode = require('qrcode');
 const { REMOTE_HTML } = require('./paths');
 const favorites = require('./favorites');
 const stream = require('./stream');
+const urls = require('./urls');
+const settings = require('./settings');
 
 const PORT = process.env.PB_PORT !== undefined && process.env.PB_PORT !== '' ? Number(process.env.PB_PORT) : 8765; // tests use 0 = any free port
 const MIRROR_FPS = 15;
 const RTC_TIMEOUT = 8000; // no video connection after this → fall back to picture frames
+const MAX_CLIENTS = 6;
+const MAX_MESSAGE = 256 * 1024;            // biggest phone message (video setup) is a few KB
+const FAIL_LIMIT = 10, FAIL_WINDOW = 10 * 60_000, BLOCK_FOR = 10 * 60_000, DENIED_BLOCK = 60_000;
+const TEST = !!process.env.PB_TEST;
 
 let hub = null;
 const cursor = { x: 600, y: 400 };         // trackpad cursor (page coords)
@@ -35,14 +47,51 @@ function lanIP() {
   return '127.0.0.1';
 }
 
-// Secret key, so only someone who scanned the QR (or has the link) can drive the browser.
-function remoteKey() {
-  const file = path.join(app.getPath('userData'), 'remote.json');
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')).key; } catch {}
-  const key = crypto.randomBytes(6).toString('hex');
+// ---------- secret link + paired phones (remote.json, readable only by you) ----------
+// { key: 32 hex chars, devices: [{ id, token, name, added, lastSeen }] }
+const storeFile = () => path.join(app.getPath('userData'), 'remote.json');
+let store = null;
+function loadStore() {
+  if (store) return store;
+  let data = {};
+  try { data = JSON.parse(fs.readFileSync(storeFile(), 'utf8')) || {}; } catch {}
+  store = { key: data.key, devices: Array.isArray(data.devices) ? data.devices : [] };
+  if (!/^[0-9a-f]{32}$/.test(store.key || '')) { store.key = crypto.randomBytes(16).toString('hex'); store.devices = []; saveStore(); }
+  return store;
+}
+function saveStore() {
+  const file = storeFile();
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify({ key }));
-  return key;
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(store), { mode: 0o600 });
+  fs.renameSync(tmp, file);
+  try { fs.chmodSync(file, 0o600); } catch {}
+}
+// Constant-time comparison: how long a check takes says nothing about how close a guess was.
+function sameSecret(a, b) {
+  const x = Buffer.from(String(a ?? '')), y = Buffer.from(String(b ?? ''));
+  return x.length === y.length && x.length > 0 && crypto.timingSafeEqual(x, y);
+}
+const deviceFor = (token) => (token ? loadStore().devices.find((d) => sameSecret(d.token, token)) || null : null);
+
+function deviceName(ua = '') {
+  const what = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android phone'
+    : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows PC' : /Linux/.test(ua) ? 'Linux device' : 'Device';
+  const browser = /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
+  return browser ? `${what} · ${browser}` : what;
+}
+
+// ---------- too many wrong tries → that address waits ----------
+const tries = new Map(); // ip -> { n, first, until }
+function blocked(ip) { const t = tries.get(ip); return !!t && t.until > Date.now(); }
+function failed(ip, { denied = false } = {}) {
+  const now = Date.now();
+  let t = tries.get(ip);
+  if (!t || now - t.first > FAIL_WINDOW) t = { n: 0, first: now, until: 0 };
+  t.n++;
+  if (denied) t.until = now + DENIED_BLOCK;
+  else if (t.n >= FAIL_LIMIT) t.until = now + BLOCK_FOR;
+  tries.set(ip, t);
 }
 
 // Self-signed HTTPS certificate for the current Wi-Fi address (iPhone Safari may refuse plain HTTP).
@@ -53,7 +102,8 @@ function tlsCert(ip) {
   const dir = path.join(app.getPath('userData'), 'tls');
   const keyFile = path.join(dir, `${ip}.key`);
   const certFile = path.join(dir, `${ip}.crt`);
-  if (!fs.existsSync(certFile) || !fs.existsSync(keyFile)) {
+  try { return { key: fs.readFileSync(keyFile), cert: fs.readFileSync(certFile) }; } catch {} // made earlier: reuse it
+  {
     fs.mkdirSync(dir, { recursive: true });
     const forge = require('node-forge');
     const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -74,10 +124,11 @@ function tlsCert(ip) {
       { name: 'subjectKeyIdentifier' },
     ]);
     cert.sign(forge.pki.privateKeyFromPem(keyPem), forge.md.sha256.create());
+    const certPem = forge.pki.certificateToPem(cert);
     fs.writeFileSync(keyFile, keyPem, { mode: 0o600 });
-    fs.writeFileSync(certFile, forge.pki.certificateToPem(cert));
+    fs.writeFileSync(certFile, certPem);
+    return { key: Buffer.from(keyPem), cert: Buffer.from(certPem) };
   }
-  return { key: fs.readFileSync(keyFile), cert: fs.readFileSync(certFile) };
 }
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -234,7 +285,6 @@ function stopVideo(client) {
 // ---------- remote server ----------
 const clients = new Set();
 let clientSeq = 0;
-let KEY = '';
 let REMOTE_URL = '';
 let QR_DATA = '';
 
@@ -247,7 +297,10 @@ function broadcast(msg) {
   for (const c of clients) if (c.ws.readyState === 1) c.ws.send(data);
 }
 
-function status() { return { clients: clients.size, url: REMOTE_URL, qr: QR_DATA, offline: currentIP === '127.0.0.1' }; }
+function status() {
+  if (!enabled) return { clients: 0, url: '', qr: '', offline: false, disabled: true };
+  return { clients: clients.size, url: REMOTE_URL, qr: QR_DATA, offline: currentIP === '127.0.0.1', disabled: false };
+}
 
 function broadcastStatus(clientsChanged = false) {
   hub?.onRemoteStatus(status(), { clientsChanged });
@@ -273,7 +326,10 @@ function handle(client, msg) {
       break;
     case 'nav': // go / back / forward / reload — acts on the active tab
       if (!win) break;
-      if (msg.action === 'go') win.navigate(String(msg.input || ''), { typed: true });
+      if (msg.action === 'go') {
+        const url = urls.fromInput(String(msg.input || '').slice(0, 4000));
+        if (url && /^https?:/i.test(url)) win.navigate(url, { typed: true }); // web addresses only, never local files
+      }
       else if (msg.action === 'back') win.active?.back();
       else if (msg.action === 'forward') win.active?.forward();
       else if (msg.action === 'reload') win.active?.reload();
@@ -298,7 +354,7 @@ function handle(client, msg) {
       scroll(msg.x * w, msg.y * h, msg.dx * w, msg.dy * h);
       break;
     case 'text':
-      target().wc?.insertText(String(msg.text || ''));
+      target().wc?.insertText(String(msg.text || '').slice(0, 10_000));
       break;
     case 'key':
       key(msg.key);
@@ -306,8 +362,8 @@ function handle(client, msg) {
     case 'fav': { // open / open-new / toggle — from the phone's favorites list
       if (!win) break;
       const url = typeof msg.url === 'string' ? msg.url : '';
-      if (msg.action === 'open' && /^https?:|^file:/i.test(url)) win.navigate(url);
-      else if (msg.action === 'open-new' && /^https?:|^file:/i.test(url)) win.newTab(url);
+      if (msg.action === 'open' && /^https?:/i.test(url)) win.navigate(url);
+      else if (msg.action === 'open-new' && /^https?:/i.test(url)) win.newTab(url);
       else if (msg.action === 'toggle') hub.toggleFavorite?.(win, { fromPhone: true });
       break;
     }
@@ -322,72 +378,169 @@ function handle(client, msg) {
   }
 }
 
+// A new phone (right key, no device token yet) must be allowed on the computer.
+async function askToAllow({ ip, name }) {
+  if (module.exports._approve) return module.exports._approve({ ip, name });
+  if (TEST) return true;
+  const parent = BaseWindow.getFocusedWindow() || hub?.current()?.base;
+  parent?.focus?.();
+  const opts = { type: 'question', buttons: ['Allow', 'Don’t allow'], defaultId: 1, cancelId: 1,
+    message: 'A phone wants to control Rove',
+    detail: `${name} at ${ip.replace(/^::ffff:/, '')}\n\nOnly allow it if it’s your own phone and you just scanned the QR code. `
+      + 'You can remove paired phones in Settings → Phone remote.' };
+  const { response } = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
+  return response === 0;
+}
+const asking = new Set(); // addresses with a question open
+
+let server = null, wss = null, enabled = false, port = PORT;
+
+function admit(ws, device) {
+  const client = { ws, mode: 'basic', id: ++clientSeq, rtc: null, device: device.id };
+  clients.add(client);
+  broadcastStatus(true);
+  ws.send(JSON.stringify({ type: 'state', ...pageState() }));
+  ws.send(JSON.stringify({ type: 'tabs', tabs: tabList() }));
+  ws.send(JSON.stringify({ type: 'favorites', favorites: favList() }));
+  ws.on('message', (data, isBinary) => {
+    if (isBinary) return;
+    try { handle(client, JSON.parse(data)); } catch {}
+  });
+  ws.on('close', () => {
+    stopVideo(client);
+    clients.delete(client);
+    updateMirror();
+    broadcastStatus(true);
+  });
+}
+
+async function onConnection(ws, req) {
+  const ip = req.socket.remoteAddress || '';
+  ws.on('error', () => {});
+  if (blocked(ip)) return ws.close(4029, 'too many tries');
+  const origin = req.headers.origin;
+  if (origin && origin !== `https://${req.headers.host}`) return ws.close(4003, 'not allowed'); // only our own phone page
+  if (clients.size >= MAX_CLIENTS) return ws.close(4008, 'too many phones');
+  const q = new URL(req.url, 'http://x').searchParams;
+  if (!sameSecret(q.get('k'), loadStore().key)) { failed(ip); return ws.close(4001, 'bad key'); }
+  let device = deviceFor(q.get('d'));
+  if (!device) {
+    if (asking.has(ip)) return ws.close(4002, 'waiting');
+    asking.add(ip);
+    let ok = false;
+    try {
+      ws.send(JSON.stringify({ type: 'pending' }));
+      ok = await askToAllow({ ip, name: deviceName(req.headers['user-agent']) });
+    } finally { asking.delete(ip); }
+    if (ws.readyState !== 1) return;
+    if (!ok) { failed(ip, { denied: true }); return ws.close(4003, 'not allowed'); }
+    device = { id: crypto.randomBytes(6).toString('hex'), token: crypto.randomBytes(16).toString('hex'),
+      name: deviceName(req.headers['user-agent']), added: Date.now(), lastSeen: Date.now() };
+    loadStore().devices.push(device);
+    saveStore();
+    ws.send(JSON.stringify({ type: 'paired', token: device.token }));
+    hub?.toPages?.('settings', 'remote-changed');
+  } else if (Date.now() - (device.lastSeen || 0) > 60_000) {
+    device.lastSeen = Date.now();
+    saveStore();
+  }
+  tries.delete(ip);
+  admit(ws, device);
+}
+
 async function start(theHub) {
   hub = theHub;
-  KEY = remoteKey();
-  const ip = lanIP();
+  loadStore();
   const remoteHtml = REMOTE_HTML;
-
-  const server = https.createServer(tlsCert(ip), (req, res) => {
+  server = https.createServer(tlsCert(lanIP()), (req, res) => {
     const { pathname } = new URL(req.url, 'http://x');
     if (pathname === '/') {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
+        'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff' });
       fs.createReadStream(remoteHtml).pipe(res);
     } else {
       res.writeHead(404); res.end();
     }
   });
-
-  const wss = new WebSocketServer({ server, path: '/ws' });
-  wss.on('connection', (ws, req) => {
-    const k = new URL(req.url, 'http://x').searchParams.get('k');
-    if (k !== KEY) return ws.close(4001, 'bad key');
-    const client = { ws, mode: 'basic', id: ++clientSeq, rtc: null };
-    clients.add(client);
-    broadcastStatus(true);
-    ws.send(JSON.stringify({ type: 'state', ...pageState() }));
-    ws.send(JSON.stringify({ type: 'tabs', tabs: tabList() }));
-    ws.send(JSON.stringify({ type: 'favorites', favorites: favList() }));
-    ws.on('message', (data, isBinary) => {
-      if (isBinary) return;
-      try { handle(client, JSON.parse(data)); } catch {}
-    });
-    ws.on('close', () => {
-      stopVideo(client);
-      clients.delete(client);
-      updateMirror();
-      broadcastStatus(true);
-    });
-  });
-
-  await new Promise((resolve) => {
-    server.on('error', (err) => { console.error('Remote server error:', err.message); resolve(); });
-    server.listen(PORT, '0.0.0.0', () => resolve());
-  });
-  const port = server.address()?.port || PORT;
-  await setAddress(ip, port);
-  // The Wi-Fi address can change while the browser runs (started offline, moved to another network…):
-  // check every few seconds and, if it changed, switch the certificate, the link and the QR code.
-  checkAddress = async () => {
-    const now = lanIP();
-    if (now === currentIP) return false;
-    try { server.setSecureContext(tlsCert(now)); } catch (err) { console.error('Remote certificate update failed:', err.message); return false; }
-    await setAddress(now, port);
-    return true;
-  };
-  clearInterval(addressTimer);
-  addressTimer = setInterval(() => { checkAddress().catch(() => {}); }, 5000);
-  addressTimer.unref?.();
+  server.on('error', (err) => console.error('Remote server error:', err.message));
+  wss = new WebSocketServer({ server, path: '/ws', maxPayload: MAX_MESSAGE });
+  wss.on('connection', (ws, req) => { onConnection(ws, req).catch(() => { try { ws.close(1011); } catch {} }); });
+  settings.on('change', (changed) => { if ('remoteEnabled' in changed) setEnabled(changed.remoteEnabled).catch(() => {}); });
+  await setEnabled(settings.get('remoteEnabled') !== false);
   return server;
 }
 
-let currentIP = null, addressTimer = null, checkAddress = async () => false;
-async function setAddress(ip, port) {
+// Turn the whole server on (listening on the Wi-Fi) or off (nothing listens, phones are disconnected).
+async function setEnabled(on) {
+  if (on === enabled) return;
+  enabled = on;
+  clearInterval(addressTimer);
+  if (!on) {
+    for (const c of [...clients]) c.ws.close(4000, 'remote turned off');
+    await new Promise((resolve) => { server.close(() => resolve()); server.closeAllConnections?.(); setTimeout(resolve, 1000); });
+    currentIP = null; REMOTE_URL = ''; QR_DATA = '';
+    broadcastStatus(true);
+    return;
+  }
+  const ip = lanIP();
+  try { server.setSecureContext(tlsCert(ip)); } catch {}
+  await new Promise((resolve, reject) => {
+    const fail = (err) => { server.off('listening', ok); enabled = false; reject(err); };
+    const ok = () => { server.off('error', fail); resolve(); };
+    server.once('error', fail);
+    server.once('listening', ok);
+    server.listen(PORT, '0.0.0.0');
+  });
+  port = server.address()?.port || PORT;
+  await setAddress(ip, port);
+  // The Wi-Fi address can change while the browser runs (started offline, moved to another network…):
+  // check every few seconds and, if it changed, switch the certificate, the link and the QR code.
+  addressTimer = setInterval(() => { checkAddress().catch(() => {}); }, 5000);
+  addressTimer.unref?.();
+}
+
+async function checkAddress() {
+  if (!enabled) return false;
+  const now = lanIP();
+  if (now === currentIP) return false;
+  try { server.setSecureContext(tlsCert(now)); } catch (err) { console.error('Remote certificate update failed:', err.message); return false; }
+  await setAddress(now, port);
+  return true;
+}
+
+let currentIP = null, addressTimer = null;
+async function setAddress(ip, thePort) {
   currentIP = ip;
-  REMOTE_URL = `https://${ip}:${port}/?k=${KEY}`;
+  REMOTE_URL = `https://${ip}:${thePort}/?k=${loadStore().key}`;
   QR_DATA = await QRCode.toDataURL(REMOTE_URL, { margin: 1, width: 296, errorCorrectionLevel: 'M' });
-  console.log('Remote:', REMOTE_URL);
+  if (TEST) console.log('Remote:', REMOTE_URL);
   broadcastStatus();
+}
+
+// ---------- paired phones (Settings → Phone remote) ----------
+function info() {
+  const connected = new Set([...clients].map((c) => c.device));
+  return { enabled, devices: loadStore().devices.map(({ id, name, added, lastSeen }) => ({ id, name, added, lastSeen, connected: connected.has(id) })) };
+}
+function dropClients(test) { for (const c of [...clients]) if (test(c)) c.ws.close(4001, 'forgotten'); }
+function forgetDevice(id) {
+  const s = loadStore();
+  s.devices = s.devices.filter((d) => d.id !== String(id));
+  saveStore();
+  dropClients((c) => c.device === String(id));
+  hub?.toPages?.('settings', 'remote-changed');
+  return info();
+}
+// New secret link: every phone is forgotten and has to scan the new QR code (and be allowed) again.
+async function newLink() {
+  const s = loadStore();
+  s.key = crypto.randomBytes(16).toString('hex');
+  s.devices = [];
+  saveStore();
+  dropClients(() => true);
+  if (enabled && currentIP) await setAddress(currentIP, port);
+  hub?.toPages?.('settings', 'remote-changed');
+  return info();
 }
 
 // ---------- the browser tells us what changed ----------
@@ -395,8 +548,14 @@ let stateTimer = null, tabsTimer = null;
 module.exports = {
   start,
   status,
+  info,
+  forgetDevice,
+  newLink,
+  setEnabled,
   checkAddress: () => checkAddress(),
-  port: () => { try { return Number(new URL(REMOTE_URL).port); } catch { return PORT; } },
+  port: () => port,
+  _approve: null,                         // tests: replace the "Allow this phone?" question
+  _resetLimits: () => tries.clear(),      // tests
   stateChanged() {
     clearTimeout(stateTimer);
     stateTimer = setTimeout(() => broadcast({ type: 'state', ...pageState() }), 50);

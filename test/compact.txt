@@ -13,3 +13,7 @@
 08-ui
 02-tabs
 06-remote
+# Phone remote hardening (pairing, limits, on/off)
+06-remote
+10-settings
+08-ui

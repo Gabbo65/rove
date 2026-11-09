@@ -79,6 +79,11 @@ function api(hub) {
     deletePassword: (_ctx, id) => passwords.remove(id),
     removeNever: (_ctx, origin) => passwords.never.remove(origin),
 
+    // phone remote
+    remote: () => require('./remote').info(),
+    remoteForgetDevice: (_ctx, id) => require('./remote').forgetDevice(String(id)),
+    remoteNewLink: () => require('./remote').newLink(),
+
     // form data
     profiles: () => passwords.profiles(),
     saveProfile: (_ctx, { id, ...data } = {}) => (id ? passwords.updateProfile(id, data) : passwords.saveProfile(data)),

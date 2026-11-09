@@ -103,7 +103,7 @@ Control the browser from your phone over your home Wi-Fi. Nothing to install on 
 2. Scan it with your phone's camera. Your phone and computer must be on the same Wi-Fi.
 3. The first time, your phone warns about the connection's certificate: the browser makes its own private certificate for your network. Accept it to continue.
 
-The remote is meant for your own trusted Wi-Fi: anyone with the QR link can control the browser.
+Each new phone has to be **allowed on the computer** once. In **Settings → Phone remote** you can remove phones, make a new QR code, or turn the remote off completely.
 
 Two modes:
 
@@ -170,7 +170,6 @@ The direction is simple: **everything about the browser should be yours to chang
 - **Hex:** Rove's built-in toolkit for people who like to take things apart.
   - **Script injection:** run your own JavaScript and CSS on the sites you choose, to fix, automate or reshape any page.
   - **Power tools:** for inspecting and experimenting with how websites work. Details to come.
-- **Phone remote, hardened:** stronger pairing and encryption before it's recommended outside your home network.
 - **Signed installers** and automatic in-app updates.
 
 Ideas and feedback are welcome in [Issues](https://github.com/Gabbo65/rove/issues).

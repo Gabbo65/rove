@@ -195,6 +195,28 @@ function highlight() {
 }
 window.addEventListener('scroll', highlight, { passive: true });
 
+// ---------- phone remote ----------
+const when = (t) => (t ? new Date(t).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
+function renderRemote(r) {
+  $('rm-empty').hidden = r.devices.length > 0;
+  $('rm-list').replaceChildren(...r.devices.map((d) => {
+    const row = document.createElement('div'); row.className = 'row item';
+    const site = document.createElement('div'); site.className = 'site';
+    site.append(Object.assign(document.createElement('div'), { className: 'label', textContent: d.name }),
+      Object.assign(document.createElement('div'), { className: 'hint', textContent: d.connected ? 'Connected now' : `Last used ${when(d.lastSeen)}` }));
+    const del = Object.assign(document.createElement('button'), { className: 'btn', textContent: 'Remove' });
+    del.onclick = async () => renderRemote(await call('remoteForgetDevice', d.id));
+    row.append(site, del);
+    return row;
+  }));
+}
+const loadRemote = async () => renderRemote(await call('remote'));
+$('rm-new').addEventListener('click', async () => {
+  if (!confirm('Forget every phone and make a new QR code? Phones will have to scan it again.')) return;
+  renderRemote(await call('remoteNewLink'));
+  flash($('rm-new'), 'Done');
+});
+
 // ---------- load ----------
 async function load() {
   const data = await call('get');
@@ -206,8 +228,9 @@ async function load() {
   highlight();
 }
 window.pb.on((name, data) => {
-  if (name === 'settings') render(data);
+  if (name === 'settings') { const was = S.remoteEnabled; render(data); if (was !== data.remoteEnabled) loadRemote(); }
   if (name === 'passwords-changed') { loadPasswords(); loadProfiles(); }
+  if (name === 'remote-changed') loadRemote();
   if (name === 'update') renderAbout(data);
 });
-load().then(() => { loadPasswords(); loadProfiles(); if (location.hash) document.querySelector(location.hash)?.scrollIntoView(); });
+load().then(() => { loadPasswords(); loadProfiles(); loadRemote(); if (location.hash) document.querySelector(location.hash)?.scrollIntoView(); });

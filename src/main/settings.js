@@ -41,6 +41,8 @@ const SCHEMA = {
   sleepingTabs: { default: true, check: bool },
   sleepAfterMinutes: { default: 30, check: (v) => (Number.isFinite(v) && v >= 1 && v <= 24 * 60 ? Math.round(v) : undefined) },
   updateCheck: { default: true, check: bool },
+  // Phone remote: off = nothing listens on the network at all.
+  remoteEnabled: { default: true, check: bool },
 };
 
 let cache = null;

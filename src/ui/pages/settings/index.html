@@ -17,6 +17,7 @@
     <a href="#downloads">Downloads</a>
     <a href="#passwords">Passwords</a>
     <a href="#forms">Addresses &amp; more</a>
+    <a href="#remote">Phone remote</a>
     <a href="#privacy">Privacy</a>
     <a href="#about">About</a>
   </nav>
@@ -132,6 +133,25 @@
       <div id="pf-list"></div>
       <div class="row hint" id="pf-empty">No saved addresses yet</div>
       <div class="row"><button class="btn" id="pf-add">Add address</button></div>
+    </div>
+  </section>
+
+  <section id="remote">
+    <h2>Phone remote</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Control Rove from your phone</div><div class="hint">Scan the QR code (⇧⌘Q) on the same Wi-Fi. Each new phone has to be allowed here on the computer once. Off = Rove doesn’t listen on the network at all.</div></div>
+        <label class="switch"><input type="checkbox" data-setting="remoteEnabled"><span></span></label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><div class="label">Paired phones</div></div>
+      <div id="rm-list"></div>
+      <div class="row hint" id="rm-empty">No phones paired yet</div>
+      <div class="row">
+        <div><div class="label">New QR code</div><div class="hint">Makes a new secret link and forgets every phone — use it if someone else may have seen your QR code.</div></div>
+        <div class="actions"><button class="btn" id="rm-new">Forget all phones</button></div>
+      </div>
     </div>
   </section>
 

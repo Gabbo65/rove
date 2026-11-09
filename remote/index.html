@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https: http: data: blob:; connect-src 'self' wss:; media-src blob: mediastream:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -137,28 +138,44 @@
 
 <script>
 // ---------- connection ----------
+// The secret link's key comes from the QR code once, is kept on this phone, and is taken out of the address
+// bar right away (so it doesn't sit in the browser history). Once the computer allows this phone, it also keeps
+// its own device token.
 const params = new URLSearchParams(location.search);
 let key = params.get('k');
-try { if (key) localStorage.setItem('k', key); else key = localStorage.getItem('k'); } catch {}
+let device = null;
+try {
+  if (key) { if (localStorage.getItem('k') !== key) localStorage.removeItem('d'); localStorage.setItem('k', key); }
+  else key = localStorage.getItem('k');
+  device = localStorage.getItem('d');
+} catch {}
+if (location.search) history.replaceState(null, '', location.pathname);
+const forget = () => { try { localStorage.removeItem('k'); localStorage.removeItem('d'); } catch {} };
 
 let ws, mode = 'basic';
 const $ = (id) => document.getElementById(id);
 const send = (msg) => ws && ws.readyState === 1 && ws.send(JSON.stringify(msg));
 
 function connect() {
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?k=${encodeURIComponent(key || '')}`);
+  const d = device ? `&d=${encodeURIComponent(device)}` : '';
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?k=${encodeURIComponent(key || '')}${d}`);
   ws.binaryType = 'blob';
   ws.onopen = () => { $('status').classList.add('on'); sendMode(); };
   ws.onclose = (e) => {
     $('status').classList.remove('on');
-    if (e.code === 4001) { $('title').textContent = 'Wrong key — scan the QR code again'; return; }
-    $('title').textContent = 'Reconnecting…';
-    setTimeout(connect, 1500);
+    if (e.code === 4001) { forget(); $('title').textContent = 'This link isn’t valid anymore — scan the QR code again'; return; }
+    if (e.code === 4003) { $('title').textContent = 'Not allowed on the computer'; return; }
+    if (e.code === 4029) { $('title').textContent = 'Too many tries — wait a few minutes'; return; }
+    if (e.code === 4008) { $('title').textContent = 'Too many phones connected'; return; }
+    $('title').textContent = e.code === 4000 ? 'Phone remote is off on the computer' : 'Reconnecting…';
+    setTimeout(connect, e.code === 4000 ? 5000 : e.code === 4002 ? 3000 : 1500);
   };
   ws.onmessage = (e) => {
     if (typeof e.data !== 'string') return showFrame(e.data);
     const msg = JSON.parse(e.data);
     if (msg.type === 'rtc') return onRtc(msg);
+    if (msg.type === 'pending') { $('title').textContent = 'Allow this phone on your computer…'; return; }
+    if (msg.type === 'paired') { device = String(msg.token || ''); try { localStorage.setItem('d', device); } catch {} return; }
     if (msg.type === 'state') {
       currentUrl = msg.url || ''; renderFavs();
       $('title').textContent = msg.title || msg.url || 'Connected';
@@ -194,6 +211,8 @@ $('seg').addEventListener('click', (e) => {
 // ---------- tabs ----------
 let tabList = [];
 const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+// Site icons come from the pages themselves: only show real web or embedded images.
+const safeIcon = (u) => typeof u === 'string' && /^(https?:\/\/|data:image\/(png|gif|jpeg|webp|x-icon|vnd\.microsoft\.icon);)/i.test(u);
 function renderTabs() {
   $('tab-count').textContent = tabList.length > 99 ? ':D' : tabList.length;
   $('tablist').replaceChildren(...tabList.map((t) => {
@@ -201,7 +220,7 @@ function renderTabs() {
     row.className = 'trow' + (t.active ? ' active' : '');
     const fi = document.createElement('div'); fi.className = 'fi';
     const letter = (host(t.url) || t.title || '•')[0];
-    if (t.favicon) { const img = document.createElement('img'); img.src = t.favicon; img.onerror = () => { fi.textContent = letter; }; fi.append(img); }
+    if (safeIcon(t.favicon)) { const img = document.createElement('img'); img.src = t.favicon; img.onerror = () => { fi.textContent = letter; }; fi.append(img); }
     else fi.textContent = letter;
     const tx = document.createElement('div'); tx.className = 'tx';
     const tt = document.createElement('div'); tt.className = 'tt'; tt.textContent = t.title || 'New Tab';
@@ -244,7 +263,7 @@ function renderFavs() {
     row.className = 'trow' + (favKey(f.url) === favKey(currentUrl) ? ' active' : '');
     const fi = document.createElement('div'); fi.className = 'fi';
     const letter = (host(f.url) || f.title || '•')[0];
-    if (f.favicon) { const img = document.createElement('img'); img.src = f.favicon; img.onerror = () => { fi.textContent = letter; }; fi.append(img); }
+    if (safeIcon(f.favicon)) { const img = document.createElement('img'); img.src = f.favicon; img.onerror = () => { fi.textContent = letter; }; fi.append(img); }
     else fi.textContent = letter;
     const tx = document.createElement('div'); tx.className = 'tx';
     const tt = document.createElement('div'); tt.className = 'tt'; tt.textContent = f.title || f.url;

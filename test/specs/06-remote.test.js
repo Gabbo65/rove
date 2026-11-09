@@ -1,4 +1,4 @@
-// Phone remote: connection + key check (unchanged security), control of the active tab, tab/favorite lists,
+// Phone remote: secret link + pairing + limits, control of the active tab, tab/favorite lists,
 // trackpad cursor, and the mirror: live video (WebRTC) with automatic picture (JPEG) fallback.
 const { BrowserWindow, session } = require('electron');
 const fs = require('fs');
@@ -9,14 +9,17 @@ const favorites = require('../../src/main/favorites');
 
 function key(t) { return JSON.parse(fs.readFileSync(path.join(t.app.getPath('userData'), 'remote.json'), 'utf8')).key; }
 
-function connect(t, k = key(t)) {
-  const ws = new WebSocket(`wss://127.0.0.1:${remote.port()}/ws?k=${k}`, { rejectUnauthorized: false });
+// The test talks to the app's own self-made certificate on 127.0.0.1, so it can't verify it like a phone would.
+function connect(t, k = key(t), { device = '', origin } = {}) {
+  const d = device ? `&d=${device}` : '';
+  const ws = new WebSocket(`wss://127.0.0.1:${remote.port()}/ws?k=${k}${d}`, { rejectUnauthorized: false, ...(origin ? { origin } : {}) });
   const msgs = []; let frames = 0;
   ws.on('message', (d, bin) => { if (bin) frames++; else msgs.push(JSON.parse(d)); });
   const last = (type) => [...msgs].reverse().find((m) => m.type === type);
   return {
     ws, msgs, last, frames: () => frames,
     open: () => new Promise((res, rej) => { ws.once('open', res); ws.once('error', rej); }),
+    closed: () => new Promise((res) => ws.once('close', (code) => res(code))),
     send: (m) => ws.send(JSON.stringify(m)),
     close: () => new Promise((res) => { ws.once('close', res); ws.close(); }),
   };
@@ -165,6 +168,103 @@ module.exports = [
       } finally {
         os.networkInterfaces = real;
         await remote.checkAddress();
+      }
+    },
+  },
+  {
+    name: 'secret link: 128-bit key, constant tries limit, only the phone page may connect, size limits',
+    async run(t) {
+      await t.fresh();
+      remote._resetLimits();
+      t.assert.match(key(t), /^[0-9a-f]{32}$/, '128-bit key');
+      if (process.platform !== 'win32') {
+        t.assert.equal(fs.statSync(path.join(t.app.getPath('userData'), 'remote.json')).mode & 0o077, 0, 'only you can read it');
+      }
+      // another web page (different origin) can't open the phone connection, even with the key
+      const evil = connect(t, key(t), { origin: 'https://evil.example' });
+      t.assert.equal(await evil.closed(), 4003);
+      // too many wrong keys → this address is refused for a while, even with the right key
+      for (let i = 0; i < 10; i++) { const b = connect(t, 'x'.repeat(32)); t.assert.equal(await b.closed(), 4001); }
+      const locked = connect(t);
+      t.assert.equal(await locked.closed(), 4029, 'blocked after 10 wrong keys');
+      remote._resetLimits();
+      // huge messages are refused
+      const c = connect(t); await c.open();
+      const gone = c.closed();
+      c.ws.send('x'.repeat(1024 * 1024));
+      t.assert.equal(await gone, 1009, 'message too big');
+    },
+  },
+  {
+    name: 'pairing: a new phone must be allowed once, then reconnects with its token; remove / new link / off',
+    async run(t) {
+      const w = await t.fresh();
+      await t.go(t.url('/p1'));
+      await remote.newLink(); // start with no paired phones
+      remote._resetLimits();
+      const asked = [];
+      remote._approve = async (who) => { asked.push(who); return asked.length > 1; };
+      try {
+        // first phone: refused on the computer
+        const no = connect(t);
+        t.assert.equal(await no.closed(), 4003, 'not allowed');
+        remote._resetLimits();
+        // allowed → gets its own device token
+        const yes = connect(t); await yes.open();
+        await t.until(() => yes.last('paired') && yes.last('state'), { message: 'paired' });
+        const token = yes.last('paired').token;
+        t.assert.match(token, /^[0-9a-f]{32}$/);
+        t.assert.equal(asked.length, 2);
+        await yes.close();
+        // reconnect with the token: no question
+        const again = connect(t, key(t), { device: token }); await again.open();
+        await t.until(() => again.last('state'), { message: 'reconnected' });
+        t.assert.equal(asked.length, 2, 'not asked again');
+        const info = remote.info();
+        t.assert.equal(info.devices.length, 1);
+        t.assert.equal(info.devices[0].connected, true);
+        t.assert.ok(!JSON.stringify(info).includes(token), 'Settings never sees the token');
+        // remove the phone → disconnected, its token no longer works
+        const dropped = again.closed();
+        remote.forgetDevice(info.devices[0].id);
+        t.assert.equal(await dropped, 4001);
+        // phone may only open web addresses
+        const p2 = connect(t); await p2.open(); await t.until(() => p2.last('state'), { message: 'p2' });
+        p2.send({ type: 'nav', action: 'go', input: 'file:///etc/hosts' });
+        p2.send({ type: 'fav', action: 'open', url: 'file:///etc/hosts' });
+        await t.sleep(300);
+        t.assert.equal(w.active.title, 'Page One', 'no local files from the phone');
+        // new link: old key refused, every phone forgotten, QR changes
+        const oldKey = key(t), oldQr = remote.status().qr;
+        const kicked = p2.closed();
+        await remote.newLink();
+        t.assert.equal(await kicked, 4001);
+        t.assert.notEqual(key(t), oldKey);
+        t.assert.notEqual(remote.status().qr, oldQr);
+        t.assert.equal(remote.info().devices.length, 0);
+        const stale = connect(t, oldKey);
+        t.assert.equal(await stale.closed(), 4001);
+        remote._resetLimits();
+        // turned off in Settings: nothing listens; QR card says so; on again works
+        const p3 = connect(t); await p3.open();
+        const off = p3.closed();
+        t.settings.set({ remoteEnabled: false });
+        t.assert.equal(await off, 4000);
+        await t.until(() => remote.status().disabled, { message: 'off' });
+        const refused = connect(t);
+        const err = await new Promise((r) => { refused.ws.once('error', (e) => r(e)); refused.ws.once('open', () => r(null)); });
+        t.assert.ok(err && /ECONNREFUSED/.test(err.code || err.message), 'nothing listening');
+        w.toggleQR(true);
+        await t.until(async () => (await t.hudJs(`document.getElementById('qr-title').textContent`, w)) === 'Phone remote is off', { message: 'QR card says off' });
+        t.settings.set({ remoteEnabled: true });
+        await t.until(() => !remote.status().disabled && remote.status().qr, { message: 'on again' });
+        const p4 = connect(t); await p4.open();
+        await t.until(() => p4.last('state'), { message: 'works again' });
+        await p4.close();
+      } finally {
+        remote._approve = null;
+        remote._resetLimits();
+        t.settings.set({ remoteEnabled: true });
       }
     },
   },

@@ -16,12 +16,13 @@ const find = (forward = true, followUp = false) => window.pb.send('find', { text
 window.pb.on('hud:state', (s) => {
   document.documentElement.classList.toggle('private', !!s.private);
   // QR
-  qr.hidden = !s.qr.visible || !s.qr.img;
+  qr.hidden = !s.qr.visible || (!s.qr.img && !s.qr.disabled);
+  qr.classList.toggle('off', !!s.qr.disabled);
   if (s.qr.img) $('qr-img').src = s.qr.img;
   $('qr-addr').textContent = (s.qr.addr || '').replace(/^https?:\/\//, '').replace(/\/?\?.*$/, '');
-  $('qr-title').textContent = s.qr.offline ? 'Connect this computer to Wi-Fi'
+  $('qr-title').textContent = s.qr.disabled ? 'Phone remote is off' : s.qr.offline ? 'Connect this computer to Wi-Fi'
     : s.qr.clients > 0 ? 'Connected — scan to add another' : 'Waiting for a device…';
-  $('qr-sub').textContent = s.qr.offline ? 'The QR code updates by itself once it’s online' : 'Scan with your phone (same Wi-Fi)';
+  $('qr-sub').textContent = s.qr.disabled ? 'Turn it on in Settings → Phone remote' : s.qr.offline ? 'The QR code updates by itself once it’s online' : 'Scan with your phone (same Wi-Fi)';
   $('qr-img').style.opacity = s.qr.offline ? '0.15' : '';
   // Notice
   toast.hidden = !s.toast;

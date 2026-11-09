@@ -27,7 +27,13 @@ Only the [latest release](https://github.com/Gabbo65/rove/releases/latest) gets 
 
 ## Phone remote: know the limits
 
-The phone remote is meant for **your own trusted Wi-Fi** (home, not a café or office network):
-- It's protected by a secret link (the QR code) over HTTPS with a certificate your computer makes for itself.
-- Anyone who has that link can control the browser.
-- Stronger pairing is on the [roadmap](README.md#roadmap).
+The phone remote is meant for **your own Wi-Fi**:
+- **Secret link:** it's protected by a secret 128-bit link (the QR code), over HTTPS with a certificate your computer makes for itself.
+- **Pairing:** every new phone also has to be **allowed on the computer**, once.
+- **Settings → Phone remote:**
+  - remove paired phones
+  - make a new QR code that forgets them all
+  - turn the remote off, so nothing listens on the network at all
+- **Limits:** wrong keys are rate-limited. Only the phone page can connect, and the phone can only open web addresses.
+
+The certificate is self-made, not from a public authority, so the very first connection relies on you scanning your own screen.
