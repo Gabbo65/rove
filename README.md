@@ -8,9 +8,9 @@
 
 Windows · macOS · Linux
 
-[![Tests](https://github.com/Gabbo65/rove/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabbo65/rove/actions/workflows/ci.yml)
+[![Tests](https://github.com/Gabbo65/rove/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabbo65/rove/actions/workflows/ci.yml) [![CodeQL](https://github.com/Gabbo65/rove/actions/workflows/codeql.yml/badge.svg)](https://github.com/Gabbo65/rove/actions/workflows/codeql.yml) [![Latest release](https://img.shields.io/github/v/release/Gabbo65/rove)](https://github.com/Gabbo65/rove/releases/latest) [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-[Download](#download) · [Why](#why-rove) · [Features](#features) · [Phone remote](#phone-remote) · [Shortcuts](#keyboard-shortcuts) · [Roadmap](#roadmap) · [Build from source](#build-from-source) · [License](#license)
+[Download](#download) · [Why](#why-rove) · [Features](#features) · [Phone remote](#phone-remote) · [Shortcuts](#keyboard-shortcuts) · [Security](#security) · [Roadmap](#roadmap) · [Build from source](#build-from-source) · [License](#license)
 
 </div>
 
@@ -84,7 +84,8 @@ This is an early version. The core browser is solid and tested; the deep customi
 - **Encrypted passwords and addresses:** locked with your system's key (macOS Keychain, Windows account, Linux keyring). If no secure key store exists, the browser won't save passwords at all.
 - **Safe autofill:** fills only after a real click from you; scripts on a page can't trigger it.
 - **Passkeys:** not supported yet. Sites are told so immediately and fall back to the password option, so they don't hang.
-- **Locked-down pages:** web pages can't reach the browser's own pages or settings.
+- **Locked-down pages:** web pages can't reach the browser's own pages, settings or toolbar.
+- **Asks before opening other apps:** links like `mailto:` ask first; USB, serial and Bluetooth device requests are refused.
 
 ### Comfort
 - **Light / dark theme**, or follow your system.
@@ -101,6 +102,8 @@ Control the browser from your phone over your home Wi-Fi. Nothing to install on 
 1. Click the **remote button** in the toolbar (or press `⇧⌘Q` / `Ctrl+Shift+Q`) to show a QR code.
 2. Scan it with your phone's camera. Your phone and computer must be on the same Wi-Fi.
 3. The first time, your phone warns about the connection's certificate: the browser makes its own private certificate for your network. Accept it to continue.
+
+The remote is meant for your own trusted Wi-Fi: anyone with the QR link can control the browser.
 
 Two modes:
 
@@ -150,6 +153,12 @@ Two modes:
 **In the address bar:** `↑` `↓` choose a suggestion · `Enter` open it · `⌘`/`Ctrl` + `Enter` open in a background tab · `Tab` accept the inline completion · `Shift+Delete` remove a history suggestion · `Esc` cancel.
 
 **With the mouse:** `⌘`-click (Mac) or `Ctrl`-click (Windows / Linux) on a favorite, history entry or suggestion opens it in a background tab. Middle-click a favorite to do the same; middle-click a tab to close it.
+
+---
+
+## Security
+
+Tabs are sandboxed, the browser's own UI can't be reached by web pages, passwords are encrypted by your system, and release builds are locked down. All the details, and how to **report a vulnerability privately**, are in **[SECURITY.md](SECURITY.md)**. What changed in each version: **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 

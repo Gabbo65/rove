@@ -182,6 +182,10 @@ class Tab {
     wc.on('will-navigate', guard);
     wc.on('will-redirect', guard);
 
+    // Web Bluetooth: Electron's default is to silently pick the FIRST nearby device for the page.
+    // We have no device chooser yet, so refuse instead.
+    wc.on('select-bluetooth-device', (e, _devices, callback) => { e.preventDefault(); callback(''); });
+
     // window.open / target=_blank: real popups (OAuth logins etc.) get a small window; links get a tab.
     wc.setWindowOpenHandler(({ url, disposition }) => {
       if (/^pb:/i.test(url)) return { action: 'deny' };
@@ -258,13 +262,15 @@ class Tab {
     if (!wc) return;
     const items = [];
     const openTab = (url) => this.win.newTab(url, { background: true, opener: this });
-    if (p.linkURL && !/^javascript:/i.test(p.linkURL)) {
+    // A web page's link must not become a way into our internal pages (same rule as clicking it).
+    const openable = (url) => !!url && !/^(javascript|pb):/i.test(url);
+    if (p.linkURL && openable(p.linkURL)) {
       items.push(
         { label: 'Open Link in New Tab', click: () => openTab(p.linkURL) },
         { label: 'Copy Link', click: () => clipboard.writeText(p.linkURL) },
         { type: 'separator' });
     }
-    if (p.mediaType === 'image' && p.srcURL) {
+    if (p.mediaType === 'image' && openable(p.srcURL)) {
       items.push(
         { label: 'Open Image in New Tab', click: () => openTab(p.srcURL) },
         { label: 'Copy Image', click: () => wc.copyImageAt(p.x, p.y) },

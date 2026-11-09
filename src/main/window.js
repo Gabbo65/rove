@@ -18,6 +18,19 @@ let seq = 0;
 
 const UI_PREFS = { preload: PRELOAD.chrome, contextIsolation: true, sandbox: true, nodeIntegration: false };
 
+// The UI views (toolbar, hud, cursor) only ever show our own pb:// pages. They never navigate, never open
+// windows — otherwise e.g. a link dropped on the tab strip would load a web page into the UI, next to the
+// browser's own controls. If one is somehow pulled off its page anyway, it's put straight back.
+function lockUiView(wc, home) {
+  const block = (e) => e.preventDefault();
+  wc.on('will-navigate', block);
+  wc.on('will-redirect', block);
+  wc.on('will-frame-navigate', (e) => { if (!/^pb:\/\/(chrome|hud)\//i.test(e.url || '')) e.preventDefault(); });
+  wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+  wc.on('will-attach-webview', block);
+  wc.on('did-navigate', (_e, url) => { if (!url.startsWith(home.split('?')[0])) wc.loadURL(home).catch(() => {}); });
+}
+
 // Windows / Linux: no Mac "traffic lights" — the system draws minimize / maximize / close at the top right,
 // over our tab strip, in the strip's colour (updated when the theme changes).
 const IS_MAC = process.platform === 'darwin';
@@ -74,9 +87,9 @@ class Win {
     this.cursor.setBackgroundColor('#00000000');
 
     this.base.contentView.addChildView(this.chrome);
-    this.chrome.webContents.loadURL(`pb://chrome/index.html${isPrivate ? '?private=1' : ''}`);
-    this.hud.webContents.loadURL('pb://hud/index.html');
-    this.cursor.webContents.loadURL('pb://hud/cursor.html');
+    const homes = [[this.chrome, `pb://chrome/index.html${isPrivate ? '?private=1' : ''}`],
+      [this.hud, 'pb://hud/index.html'], [this.cursor, 'pb://hud/cursor.html']];
+    for (const [view, home] of homes) { lockUiView(view.webContents, home); view.webContents.loadURL(home); }
 
     this.chrome.webContents.once('did-finish-load', () => {
       this.uiReady = true;

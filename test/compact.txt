@@ -8,4 +8,8 @@
 # Keep here: tests for the new feature + tests for anything the change touched.
 # After an install (full suite green) this list is cleared for the next round.
 
-# (empty — cleared after the 2026-11-09 install)
+# Security pass (v0.1.1): UI lockdown, external links, permissions, context menu
+19-security
+08-ui
+02-tabs
+06-remote

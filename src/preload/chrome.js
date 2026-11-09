@@ -14,9 +14,16 @@ const LISTEN = new Set([
   'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt',
 ]);
 
-platformLabels();
+// Only our own UI pages get the bridge — never a web page, even if one ended up in a UI view.
+const OWN_UI = /^pb:\/\/(chrome|hud)\//i.test(location.href) && window.top === window;
 
-contextBridge.exposeInMainWorld('pb', {
+// Nothing dropped on the UI may load in it (Chromium's default for a dropped link or file is to open it).
+window.addEventListener('dragover', (e) => e.preventDefault(), true);
+window.addEventListener('drop', (e) => e.preventDefault(), true);
+
+if (OWN_UI) platformLabels();
+
+if (OWN_UI) contextBridge.exposeInMainWorld('pb', {
   send(channel, ...args) { if (SEND.has(channel)) ipcRenderer.send(channel, ...args); },
   invoke(channel, ...args) { return INVOKE.has(channel) ? ipcRenderer.invoke(channel, ...args) : Promise.reject(new Error('blocked')); },
   on(channel, fn) {

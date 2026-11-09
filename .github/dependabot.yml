@@ -1,0 +1,15 @@
+# Weekly checks for dependency and GitHub Actions updates; each becomes a pull request that CI tests on 3 systems.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      build-tools:
+        patterns: ["electron-builder", "@electron/*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

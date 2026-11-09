@@ -50,6 +50,8 @@ const hub = {
     return windows.values().next().value || null;
   },
   fromChrome(wc) {
+    // The view must be one of a window's UI views AND still be showing our own UI page.
+    if (!wc || wc.isDestroyed() || !/^pb:\/\/(chrome|hud)\//i.test(wc.getURL())) return null;
     for (const w of windows) if (!w.destroyed && (w.chrome.webContents === wc || w.hud.webContents === wc)) return w;
     return null;
   },
