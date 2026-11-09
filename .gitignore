@@ -17,7 +17,7 @@ build-info.json
 *.p12
 release/
 
-# graphify: keep the graph, skip machine-specific files
-graphify-out/cache/
-graphify-out/.graphify_python
-graphify-out/.graphify_root
+# Private dev notes (separate private repo) and local tools — never public
+.private/
+CLAUDE.local.md
+graphify-out/
