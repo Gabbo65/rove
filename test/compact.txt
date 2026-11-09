@@ -9,3 +9,5 @@
 # After an install (full suite green) this list is cleared for the next round.
 
 # (empty — cleared after the 2026-11-08 install)
+06-remote
+08-ui > QR

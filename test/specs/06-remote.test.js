@@ -141,4 +141,31 @@ module.exports = [
       phone.destroy();
     },
   },
+  {
+    name: 'network change: offline → QR says "connect to Wi-Fi"; back online → new address, certificate and QR',
+    async run(t) {
+      const os = require('os');
+      const real = os.networkInterfaces;
+      const before = remote.status();
+      await t.fresh();
+      try {
+        os.networkInterfaces = () => ({ lo0: [{ family: 'IPv4', internal: true, address: '127.0.0.1' }] });
+        t.assert.equal(await remote.checkAddress(), true, 'noticed going offline');
+        t.assert.ok(remote.status().offline);
+        t.assert.match(remote.status().url, /^https:\/\/127\.0\.0\.1:/);
+        await t.until(async () => (await t.hudJs(`document.getElementById('qr-title').textContent`)) === 'Connect this computer to Wi-Fi', { message: 'QR card says offline' });
+        os.networkInterfaces = () => ({ en9: [{ family: 'IPv4', internal: false, address: '10.9.8.7' }] });
+        t.assert.equal(await remote.checkAddress(), true, 'noticed the new network');
+        t.assert.equal(remote.status().offline, false);
+        t.assert.match(remote.status().url, /^https:\/\/10\.9\.8\.7:/);
+        t.assert.notEqual(remote.status().qr, before.qr, 'new QR code');
+        t.assert.ok(require('fs').existsSync(require('path').join(t.app.getPath('userData'), 'tls', '10.9.8.7.crt')), 'certificate for the new address');
+        await t.until(async () => (await t.hudJs(`document.getElementById('qr-title').textContent`)) !== 'Connect this computer to Wi-Fi', { message: 'QR card back to normal' });
+        t.assert.equal(await remote.checkAddress(), false, 'no change, nothing done');
+      } finally {
+        os.networkInterfaces = real;
+        await remote.checkAddress();
+      }
+    },
+  },
 ];

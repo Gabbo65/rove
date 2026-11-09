@@ -247,7 +247,7 @@ function broadcast(msg) {
   for (const c of clients) if (c.ws.readyState === 1) c.ws.send(data);
 }
 
-function status() { return { clients: clients.size, url: REMOTE_URL, qr: QR_DATA }; }
+function status() { return { clients: clients.size, url: REMOTE_URL, qr: QR_DATA, offline: currentIP === '127.0.0.1' }; }
 
 function broadcastStatus(clientsChanged = false) {
   hub?.onRemoteStatus(status(), { clientsChanged });
@@ -365,11 +365,29 @@ async function start(theHub) {
     server.listen(PORT, '0.0.0.0', () => resolve());
   });
   const port = server.address()?.port || PORT;
+  await setAddress(ip, port);
+  // The Wi-Fi address can change while the browser runs (started offline, moved to another network…):
+  // check every few seconds and, if it changed, switch the certificate, the link and the QR code.
+  checkAddress = async () => {
+    const now = lanIP();
+    if (now === currentIP) return false;
+    try { server.setSecureContext(tlsCert(now)); } catch (err) { console.error('Remote certificate update failed:', err.message); return false; }
+    await setAddress(now, port);
+    return true;
+  };
+  clearInterval(addressTimer);
+  addressTimer = setInterval(() => { checkAddress().catch(() => {}); }, 5000);
+  addressTimer.unref?.();
+  return server;
+}
+
+let currentIP = null, addressTimer = null, checkAddress = async () => false;
+async function setAddress(ip, port) {
+  currentIP = ip;
   REMOTE_URL = `https://${ip}:${port}/?k=${KEY}`;
   QR_DATA = await QRCode.toDataURL(REMOTE_URL, { margin: 1, width: 296, errorCorrectionLevel: 'M' });
   console.log('Remote:', REMOTE_URL);
   broadcastStatus();
-  return server;
 }
 
 // ---------- the browser tells us what changed ----------
@@ -377,6 +395,7 @@ let stateTimer = null, tabsTimer = null;
 module.exports = {
   start,
   status,
+  checkAddress: () => checkAddress(),
   port: () => { try { return Number(new URL(REMOTE_URL).port); } catch { return PORT; } },
   stateChanged() {
     clearTimeout(stateTimer);

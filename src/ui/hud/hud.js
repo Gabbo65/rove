@@ -19,7 +19,10 @@ window.pb.on('hud:state', (s) => {
   qr.hidden = !s.qr.visible || !s.qr.img;
   if (s.qr.img) $('qr-img').src = s.qr.img;
   $('qr-addr').textContent = (s.qr.addr || '').replace(/^https?:\/\//, '').replace(/\/?\?.*$/, '');
-  $('qr-title').textContent = s.qr.clients > 0 ? 'Connected — scan to add another' : 'Waiting for a device…';
+  $('qr-title').textContent = s.qr.offline ? 'Connect this computer to Wi-Fi'
+    : s.qr.clients > 0 ? 'Connected — scan to add another' : 'Waiting for a device…';
+  $('qr-sub').textContent = s.qr.offline ? 'The QR code updates by itself once it’s online' : 'Scan with your phone (same Wi-Fi)';
+  $('qr-img').style.opacity = s.qr.offline ? '0.15' : '';
   // Notice
   toast.hidden = !s.toast;
   $('toast-text').textContent = s.toast || '';

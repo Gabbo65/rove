@@ -113,7 +113,7 @@ class Win {
     if (this.destroyed || wc.isDestroyed()) return;
     const remote = this.app.remoteStatus();
     wc.send('hud:state', {
-      qr: { visible: this.qrVisible && !this.fullscreenTab, img: remote.qr, addr: remote.url, clients: remote.clients },
+      qr: { visible: this.qrVisible && !this.fullscreenTab, img: remote.qr, addr: remote.url, clients: remote.clients, offline: !!remote.offline },
       find: { open: this.findOpen && !this.fullscreenTab },
       toast: this.fullscreenTab ? null : this.toast || null,
       private: this.private,
