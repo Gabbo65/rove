@@ -7,7 +7,7 @@
   "scripts": {
     "start": "electron .",
     "icon": "electron build/make-icon.js",
-    "package": "node scripts/write-build-info.js && electron-packager . 'Rove' --platform=darwin --arch=arm64 --icon=build/icon.icns --out=dist --overwrite --asar --app-bundle-id=io.github.gabbo65.rove --ignore='^/(prototype|dist|test|_backup_v1|scripts|build/icon\\.iconset)' && node scripts/fuses.js 'dist/Rove-darwin-arm64/Rove.app' && codesign --force --deep --sign - 'dist/Rove-darwin-arm64/Rove.app'",
+    "package": "node scripts/write-build-info.js && electron-packager . 'Rove' --platform=darwin --arch=arm64 --icon=build/icon.icns --out=dist --overwrite --asar --app-bundle-id=io.github.gabbo65.rove --ignore='^/(prototype|dist|test|scripts|build/icon\\.iconset)' && node scripts/fuses.js 'dist/Rove-darwin-arm64/Rove.app' && codesign --force --deep --sign - 'dist/Rove-darwin-arm64/Rove.app'",
     "install-app": "npm test && npm run package && ditto 'dist/Rove-darwin-arm64/Rove.app' '/Applications/Rove.app'",
     "test": "electron test/run.js",
     "test:compact": "electron test/run.js --compact",
