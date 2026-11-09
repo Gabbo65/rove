@@ -16,3 +16,8 @@ build-info.json
 *.key
 *.p12
 release/
+
+# graphify: keep the graph, skip machine-specific files
+graphify-out/cache/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
