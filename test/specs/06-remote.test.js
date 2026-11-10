@@ -61,8 +61,9 @@ module.exports = [
       await t.until(() => w.tabs.length === 1, { message: 'closed' });
       c.send({ type: 'fav', action: 'toggle' });
       await t.until(() => favorites.list().length === 1 && c.last('favorites').favorites.length === 1, { message: 'starred from phone' });
-      await t.until(async () => !(await t.ui(`document.getElementById('fav-pop').hidden`)), { message: 'Mac shows the name popup' });
-      await t.ui(`document.getElementById('fp-cancel').click()`);
+      await t.sleep(300);
+      t.assert.ok(await t.ui(`document.getElementById('fav-pop').hidden`), 'no popup on the computer the phone cannot close');
+      t.assert.equal(w.overlay, false, 'the page stays usable from the phone');
       c.send({ type: 'fav', action: 'open-new', url: t.url('/p3') });
       await t.until(() => w.tabs.length === 2 && w.active.title === 'Page Three', { message: 'fav in new tab' });
       c.send({ type: 'fav', action: 'open', url: 'javascript:alert(1)' });

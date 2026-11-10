@@ -17,3 +17,10 @@
 06-remote
 10-settings
 08-ui
+# New tab focus, favicon fallback, phone favorites
+02-tabs
+03-favorites
+04-history
+06-remote > stars favorites
+11-suggest
+15-screens

@@ -4,11 +4,20 @@ import { $, pb, ICON } from './util.js';
 const url = $('url'), back = $('back'), forward = $('forward'), reload = $('reload');
 let active = null;   // active tab state
 let editing = false; // user is typing in the address bar
+let shownUrl = null; // the active tab's address at the last update
 
 export function showTab(tab) {
+  const switched = !!tab && active?.id !== tab.id;
   active = tab;
   if (!tab) return;
-  if (!editing && document.activeElement !== url) url.value = tab.url || '';
+  // Another tab became active: always show its address (a new tab's is empty), even while the bar is
+  // focused — the "focus the address bar" command for a new tab can arrive before its state does.
+  if (switched) {
+    editing = false;
+    url.value = tab.url || '';
+    if (document.activeElement === url) url.select();
+  } else if (!editing && (document.activeElement !== url || tab.url !== shownUrl)) url.value = tab.url || '';
+  shownUrl = tab.url;
   back.disabled = !tab.canBack;
   forward.disabled = !tab.canForward;
   reload.classList.toggle('loading', !!tab.loading);
@@ -19,6 +28,7 @@ export function showTab(tab) {
 }
 
 export function focusAddressBar() {
+  if (editing && document.activeElement === url) return; // already typing here: don't select (and lose) the text
   url.focus();
   url.select();
 }

@@ -37,7 +37,9 @@ function open() {
   box.hidden = false;
   popups.register('suggest', hide);
 }
-function hide() { box.hidden = true; items = []; sel = -1; }
+// Closing also drops replies still on their way (search suggestions), so they can't reopen the box
+// after you pressed Enter.
+function hide() { box.hidden = true; items = []; sel = -1; req++; clearTimeout(remoteTimer); }
 export function close() { if (!box.hidden) { hide(); popups.unregister('suggest'); } }
 
 function render() {
@@ -66,9 +68,11 @@ function render() {
 }
 
 function choose(it, disposition = 'current') {
-  close();
-  if (it.type === 'tab') { pb.send('tab:activate', it.tabId); addressBar.reset(); input.blur(); return; }
+  if (it.type === 'tab') { close(); pb.send('tab:activate', it.tabId); addressBar.reset(); input.blur(); return; }
+  // Navigate first, then close: closing the popup makes the main process refocus the active tab, and
+  // on a New Tab that would put the focus back into the address bar.
   addressBar.submit(it.type === 'search' ? it.text : it.url, disposition);
+  close();
 }
 
 async function update(fromDelete) {
@@ -134,4 +138,4 @@ input.addEventListener('keydown', (e) => {
 });
 
 input.addEventListener('blur', () => setTimeout(close, 0));
-$('urlform').addEventListener('submit', close, true);
+$('urlform').addEventListener('submit', close); // after the toolbar's own submit handler (it navigates first)

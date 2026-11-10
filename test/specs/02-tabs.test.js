@@ -1,6 +1,58 @@
 // Tabs: each tab its own view, only the visible one attached; closing actions and ⇧⌘T undo.
 module.exports = [
   {
+    name: 'new tab: empty address bar, focused (not the previous tab\'s address)',
+    async run(t) {
+      const w = await t.fresh();
+      await t.go(t.url('/p1'));
+      await t.until(async () => (await t.ui(`document.getElementById('url').value`)) === t.url('/p1'), { message: 'p1 shown' });
+      w.newTab();
+      await t.until(async () => (await t.ui(`{ const i = document.getElementById('url'); document.activeElement === i && i.value === '' }`)),
+        { message: 'new tab: address bar empty and focused' });
+      await t.sleep(500);
+      t.assert.equal(await t.ui(`document.getElementById('url').value`), '', 'stays empty');
+      t.assert.ok(w.chrome.webContents.isFocused(), 'keyboard focus is in the toolbar, not the page');
+      t.assert.ok(!w.active.wc.isFocused(), 'the new tab page does not take the focus');
+      const nt = w.active;
+      w.activate(w.tabs[0]);
+      await t.sleep(300);
+      w.activate(nt); // switching back to an open New Tab focuses the address bar too
+      await t.sleep(500);
+      t.assert.ok(w.chrome.webContents.isFocused() && !nt.wc.isFocused(), 'focus on switching back');
+    },
+  },
+  {
+    name: 'new tab: after typing an address and Enter, the address bar shows the new page',
+    async run(t) {
+      const w = await t.fresh();
+      w.newTab();
+      await t.until(async () => t.ui(`document.activeElement === document.getElementById('url') && document.querySelectorAll('.tab').length === 2`), { message: 'focused' });
+      await t.loaded(w.active);
+      const target = t.url('/p2');
+      // type (opens the suggestions popup = overlay), then Enter
+      await t.ui(`{ const i = document.getElementById('url'); i.value = ${JSON.stringify(target.replace(/^http:\/\//, ''))};
+        i.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: 'x' })); }`);
+      await t.until(async () => t.ui(`!document.getElementById('suggest').hidden`), { message: 'suggestions open' });
+      await t.ui(`document.getElementById('urlform').requestSubmit()`);
+      await t.until(() => w.active.title === 'Page Two', { message: 'navigated' }).catch((e) => { throw new Error(`${e.message} (at ${w.active.url})`); });
+      await t.sleep(500);
+      t.assert.notEqual(await t.ui(`document.activeElement.id`), 'url', 'the address bar lets go of the focus');
+      t.assert.equal(await t.ui(`document.getElementById('url').value`), target, 'address bar shows the page address');
+    },
+  },
+  {
+    name: 'favicon: found without an icon tag, kept across same-site pages',
+    async run(t) {
+      const w = await t.fresh();
+      await t.go(t.url('/fav'));
+      await t.until(() => w.active.favicon === t.url('/icon.png'), { message: 'icon tag' });
+      await t.go(t.url('/p1')); // same site, no icon tag → the site's /favicon.ico
+      await t.until(() => w.active.favicon === t.url('/favicon.ico'), { message: 'site favicon.ico' });
+      w.active.back();
+      await t.until(() => w.active.title === 'With Icon' && w.active.favicon === t.url('/icon.png'), { message: 'icon again after back' });
+    },
+  },
+  {
     name: 'new / activate / close; only the active page is attached to the window',
     async run(t) {
       const w = await t.fresh();

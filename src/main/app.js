@@ -80,14 +80,14 @@ function boot() {
       if (existing) return { ...existing, added: false };
       return { ...favorites.add({ url: tab.url, title: tab.title || '', favicon: tab.favicon }), added: true };
     },
-    // Phone ☆: add (and let the Mac show the name popup) or remove the current page.
+    // Phone ☆: add or remove the current page, right away. No name popup on the computer: nobody may be
+    // sitting there to close it, and it would cover the page the phone is controlling.
     toggleFavorite(win) {
       const tab = win?.active;
       if (!tab) return;
       const existing = favorites.findByUrl(tab.url);
       if (existing) return favorites.remove(existing.id);
-      const fav = hub.addFavoriteFromTab(win, tab);
-      if (fav) win.sendUI('command', { name: 'edit-favorite', id: fav.id, added: fav.added });
+      hub.addFavoriteFromTab(win, tab);
     },
   });
 

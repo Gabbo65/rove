@@ -32,7 +32,7 @@ const routes = {
 function start() {
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
-    if (u.pathname === '/icon.png') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG_1PX); }
+    if (u.pathname === '/icon.png' || u.pathname === '/favicon.ico') { res.writeHead(200, { 'Content-Type': 'image/png' }); return res.end(PNG_1PX); }
     if (u.pathname === '/file.bin') {
       const body = Buffer.alloc(300 * 1024, 7);
       res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': body.length,
