@@ -74,6 +74,25 @@ const MIGRATIONS = [
     last_used INTEGER NOT NULL DEFAULT 0
   );
   `,
+  // v3 — Hex Injector: your own scripts
+  `
+  CREATE TABLE hex_scripts (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    lang TEXT NOT NULL,
+    code TEXT NOT NULL DEFAULT '',
+    sites TEXT NOT NULL DEFAULT '',
+    favorite INTEGER NOT NULL DEFAULT 0,
+    example INTEGER NOT NULL DEFAULT 0,
+    created INTEGER NOT NULL,
+    modified INTEGER NOT NULL
+  );
+  `,
+  // v4 — Hex Injector: scripts run by hand (from the wheel) or automatically on their sites
+  `
+  ALTER TABLE hex_scripts ADD COLUMN run_mode TEXT NOT NULL DEFAULT 'manual';
+  `,
 ];
 
 function open(file) {

@@ -48,13 +48,23 @@ function setup(hub) {
     core.register({ id: `hex.mode.${id}`, family: 'options', parent: 'hex.mode', name, description, icon: id,
       stay: true, current: () => settings.get('hexMode') === id, run: () => { settings.set({ hexMode: id }); } });
   }
+  core.register({ id: 'hex.size', family: 'options', kind: 'group', icon: 'size', name: 'Size',
+    description: 'How big the wheel is' });
+  for (const [id, name] of [['small', 'Small'], ['normal', 'Normal'], ['large', 'Large']]) {
+    core.register({ id: `hex.size.${id}`, family: 'options', parent: 'hex.size', name, description: `${name} wheel`, icon: `size-${id}`,
+      stay: true, current: () => settings.get('hexSize') === id, run: () => { settings.set({ hexSize: id }); core.recenter(); } });
+  }
   core.register({ id: 'hex.color', family: 'options', kind: 'group', icon: 'color', name: 'Color',
     description: 'The color of the Hex wheel' });
   for (const [id, name, color] of HEX_COLORS) {
     core.register({ id: `hex.color.${id}`, family: 'options', parent: 'hex.color', name, color, description: `${name} Hex`,
       stay: true, current: () => settings.get('hexColor') === id, run: () => { settings.set({ hexColor: id }); } });
   }
+  const injector = require('./injector');
+  injector.setup(core, hub);
+  require('./scripts').seedExample(settings);
   hub.hex = core;
+  hub.hexInjector = injector;
   return core;
 }
 

@@ -18,6 +18,7 @@ module.exports = [
       const w = await t.fresh();
       t.hub.hex.close();
       t.hub.hex.open(w);
+      t.hub.hex.wheelWindow().setIgnoreMouseEvents(true); // tests drive it; the real mouse would interfere
       await t.until(async () => (await hexState(t)).open, { message: 'wheel open' });
       await t.sleep(250); // open animation
       let s = await hexState(t);
@@ -26,26 +27,27 @@ module.exports = [
       t.assert.ok(s.box.left >= 0 && s.box.top >= 0 && s.box.right <= s.vw && s.box.bottom <= s.vh, 'inside the window');
       t.assert.ok(t.hub.hex.wheelWindow().isAlwaysOnTop(), 'own always-on-top window');
       t.assert.ok(t.hub.hex.wheelWindow().isVisible(), 'wheel window visible');
+      if (process.platform === 'darwin') t.assert.ok(require('electron').app.dock.isVisible(), 'Rove keeps its Dock icon');
       const c = { x: s.box.left + s.box.width / 2, y: s.box.top + s.box.height / 2 };
       await move(t, c.x + 5, c.y + 5);
       t.assert.equal((await hexState(t)).back, false, 'dead zone: nothing');
       await move(t, c.x - 40, c.y + 40); // toward Settings (bottom-left): the wheel becomes Settings
       s = await hexState(t);
-      t.assert.ok(s.back && s.sectors.join() === 'Trigger,Mode,Color', JSON.stringify(s));
+      t.assert.ok(s.back && s.sectors.join() === 'Trigger,Mode,Size,Color', JSON.stringify(s));
       t.assert.equal(s.on, '', 'moving only enters, never runs or highlights by itself');
       await move(t, c.x, c.y - 60); // inside: toward Trigger (a command, top) only highlights it
       s = await hexState(t);
-      t.assert.ok(s.back && s.sectors.join() === 'Trigger,Mode,Color', 'still in Settings');
+      t.assert.ok(s.back && s.sectors.join() === 'Trigger,Mode,Size,Color', 'still in Settings');
       t.assert.match(s.caption, /Trigger/);
       t.assert.equal(w.active.url, 'pb://newtab/', 'nothing ran');
       // centre button = back to the four families
       await wjs(t, `document.querySelector('#hex .hx-hub').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
       s = await hexState(t);
       t.assert.ok(!s.back && s.sectors.length === 4, 'back to the root wheel');
-      // keyboard: 1 = Injector (empty, honest text), Esc back, Esc closes
+      // keyboard: 1 = Injector, Esc back, Esc closes
       await key(t, '1');
       s = await hexState(t);
-      t.assert.ok(s.back && /No scripts yet/.test(s.caption), JSON.stringify(s));
+      t.assert.ok(s.back && s.sectors.join() === 'JavaScript,CSS,HTML,Scripts…', JSON.stringify(s));
       await key(t, 'Escape');
       t.assert.equal((await hexState(t)).sectors.length, 4);
       await key(t, 'Escape');
@@ -64,9 +66,10 @@ module.exports = [
       t.assert.throws(() => t.hub.hex.register({ id: 'x', family: 'nope', run() {} }), /bad item/);
       t.hub.hex.close();
       t.hub.hex.open(w);
+      t.hub.hex.wheelWindow().setIgnoreMouseEvents(true); // tests drive it; the real mouse would interfere
       await t.until(async () => (await hexState(t)).open, { message: 'open' });
       await key(t, '3');             // Settings ring (Trigger selected)
-      await key(t, 'ArrowLeft');     // Color (Trigger → ← wraps to Color)
+      await key(t, 'ArrowLeft');     // Color (Trigger → ← wraps to the last: Color)
       await key(t, 'Enter');         // deeper: the color ring
       let s = await hexState(t);
       t.assert.equal(s.sectors.length, 7, JSON.stringify(s));
@@ -78,7 +81,7 @@ module.exports = [
       t.assert.equal(w.active.url, 'pb://newtab/', 'never opened Rove settings');
       // back one level, then record a new Trigger right in the wheel
       await wjs(t, `document.querySelector('#hex .hx-hub').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
-      t.assert.deepEqual((await hexState(t)).sectors, ['Trigger', 'Mode', 'Color']);
+      t.assert.deepEqual((await hexState(t)).sectors, ['Trigger', 'Mode', 'Size', 'Color']);
       await wjs(t, `document.querySelector('#hex .hx-sector[aria-label="Trigger"]').dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
       await key(t, 'k', ", code: 'KeyK', altKey: true");
       await t.until(() => t.settings.get('hexTrigger') === 'Alt+K', { message: 'trigger recorded in the wheel' });
@@ -127,6 +130,7 @@ module.exports = [
       const w = await t.fresh();
       t.hub.hex.close();
       t.hub.hex.open(w);
+      t.hub.hex.wheelWindow().setIgnoreMouseEvents(true); // tests drive it; the real mouse would interfere
       await t.until(async () => (await hexState(t)).open, { message: 'open' });
       const hoverSector = (label) => wjs(t, `document.querySelector('#hex .hx-sector[aria-label="${label}"]').dispatchEvent(new MouseEvent('mouseenter')); 1`);
       await hoverSector('Settings');
@@ -155,8 +159,15 @@ module.exports = [
       const p = screen.getCursorScreenPoint(), wa = screen.getDisplayNearestPoint(p).workArea, b = ww.getBounds();
       const ex = Math.round(Math.max(wa.x, Math.min(wa.x + wa.width - b.width, p.x - 160)));
       t.assert.equal(b.x, ex, 'wheel centred on the mouse again');
+      // Size: Large makes the wheel window bigger and zooms the wheel
       await key(t, 'Escape');
-      t.settings.set({ hexMode: 'smooth', hexColor: 'violet' });
+      await hoverSector('Size');
+      await wjs(t, `document.querySelector('#hex .hx-sector[aria-label="Large"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); 1`);
+      await t.until(() => t.settings.get('hexSize') === 'large', { message: 'size saved' });
+      t.assert.equal(ww.getBounds().width, 400, 'bigger window');
+      t.assert.equal(ww.webContents.getZoomFactor(), 1.25);
+      await key(t, 'Escape');
+      t.settings.set({ hexMode: 'smooth', hexColor: 'violet', hexSize: 'normal' });
     },
   },
 ];

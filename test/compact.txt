@@ -1,50 +1,11 @@
 # Compact test list — run with:  npm run test:compact
-# Runs every time we add or change something. Full suite (npm test) runs before every install.
+# ONLY the tests that prove the feature being worked on right now. Replace this list for each new feature.
+# Every other test lives in the full suite (npm test), which runs before build + install.
 #
 # One pick per line:
 #   02-tabs                      → every test in that spec file
 #   02-tabs > drag a tab         → only tests in that file whose name contains "drag a tab"
-#
-# Keep here: tests for the new feature + tests for anything the change touched.
-# After an install (full suite green) this list is cleared for the next round.
 
-# Security pass (v0.1.1): UI lockdown, external links, permissions, context menu
-19-security
-08-ui
-02-tabs
-06-remote
-# Phone remote hardening (pairing, limits, on/off)
-06-remote
-10-settings
-08-ui
-# New tab focus, favicon fallback, phone favorites
-02-tabs
-03-favorites
-04-history
-06-remote > stars favorites
-11-suggest
-15-screens
-# Customization step 1: appearance
-20-appearance
-10-settings
-13-private
-# Customization step 2: layout (toolbar buttons, vertical tabs; drag code shared with tabs/favorites)
-21-layout
-14-tab-management
-05-find-downloads
-# QR auto-show option
-08-ui
-06-remote
-# Customization step 3: new tab page (+ new windows focus the address bar)
-22-newtab
-01-core
-12-passwords
-# QR shortcut ⇧⌘P, look.css scoped to the toolbar
-08-ui > QR
-22-newtab
-# Glass: Docked Glass toolbar + Pages Glass
-23-glass
-# Step 4: custom CSS + setup file
-24-custom
-# Hex Phase 1: core + wheel + trigger
-25-hex
+# Hex Injector: manual vs automatic scripts, Dock fix
+26-injector
+25-hex > full size

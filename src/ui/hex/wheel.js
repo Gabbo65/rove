@@ -21,6 +21,14 @@ const ICONS = {
   item: '<circle cx="12" cy="12" r="2.5"/>',
   mode: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   smooth: '<path d="M3 14c3-6 6-6 9 0s6 6 9 0"/>',
+  size: '<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>',
+  'size-small': '<circle cx="12" cy="12" r="3.5"/>',
+  'size-normal': '<circle cx="12" cy="12" r="6"/>',
+  'size-large': '<circle cx="12" cy="12" r="8.5"/>',
+  'lang-js': '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/>',
+  'lang-css': '<path d="M7 4c-2 0-2 2-2 4s-1 4-2 4c1 0 2 2 2 4s0 4 2 4M17 4c2 0 2 2 2 4s1 4 2 4c-1 0-2 2-2 4s0 4-2 4"/>',
+  'lang-html': '<path d="M9 7l-5 5 5 5M15 7l5 5-5 5M13 5l-2 14"/>',
+  edit: '<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12.5 6.5l5 5"/>',
   bumpy: '<path d="M3 16h4V9h5v7h4V7h5"/>',
 };
 const ROOT_ANGLES = [[180, 270], [270, 360], [90, 180], [0, 90]]; // top-left, top-right, bottom-left, bottom-right

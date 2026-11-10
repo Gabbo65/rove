@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' pb: 'unsafe-inline'; script-src 'self'">
+<title>Hex Injector</title>
+<link rel="stylesheet" href="pb://shared/theme.css">
+<link rel="stylesheet" href="scripts.css">
+</head>
+<body>
+<aside>
+  <div class="drag"></div>
+  <div class="brand"><span class="dot"></span>Injector</div>
+  <input id="search" placeholder="Search scripts" spellcheck="false" autocomplete="off">
+  <div class="chips" id="runchips"><button data-r="">All</button><button data-r="manual">Manual</button><button data-r="auto">Automatic</button></div>
+  <div class="chips" id="chips"><button data-l="">All</button><button data-l="js">JS</button><button data-l="css">CSS</button><button data-l="html">HTML</button></div>
+  <div id="list"></div>
+  <button id="new" class="btn wide">+ New script</button>
+</aside>
+<main>
+  <div class="drag"></div>
+  <div id="empty" class="empty">Pick a script, or make a new one.<br><span>Your scripts stay on this computer. Run them from the Hex wheel: Injector.</span></div>
+  <form id="form" hidden autocomplete="off">
+    <div class="top">
+      <button type="button" id="fav" class="icon" title="Favorite">☆</button>
+      <input id="name" placeholder="Script name" spellcheck="false" maxlength="80">
+      <select id="lang"></select>
+      <button type="button" id="pin" class="icon on" title="Keep on top">📌</button>
+    </div>
+    <input id="desc" placeholder="What it does (optional)" maxlength="300">
+    <textarea id="code" spellcheck="false" placeholder="// your code"></textarea>
+    <div class="mode" id="runmode"><button type="button" data-v="manual">Manual<span>you run it from the Hex wheel</span></button><button type="button" data-v="auto">Automatic<span>runs by itself when its sites open</span></button></div>
+    <details id="sites-box"><summary id="sites-sum">Only on these sites</summary><textarea id="sites" spellcheck="false" placeholder="example.com&#10;*.example.org&#10;(empty = any web page)"></textarea></details>
+    <div class="bottom">
+      <span id="target" class="target"></span>
+      <span id="status" class="status"></span>
+      <button type="button" id="del" class="btn danger">Delete</button>
+      <button type="button" id="dup" class="btn">Duplicate</button>
+      <button type="submit" id="save" class="btn">Save</button>
+      <button type="button" id="run" class="btn primary" title="Save and run on the current tab (⌘↩)">Run ▸</button>
+    </div>
+  </form>
+</main>
+<script type="module" src="scripts.js"></script>
+</body>
+</html>

@@ -5,8 +5,7 @@ const { screen } = require('electron');
 
 // The four families, in wheel order (top-left, top-right, bottom-left, bottom-right).
 const FAMILIES = [
-  { id: 'injector', name: 'Injector', hint: 'Your scripts',
-    empty: 'No scripts yet. Your own JavaScript, CSS and HTML will live here — coming in the next Hex update.' },
+  { id: 'injector', name: 'Injector', hint: 'Your scripts', empty: '' },
   { id: 'magic', name: 'Magic', hint: 'Tools',
     empty: 'Tools like Cinema, Scanner, Reader and Protection arrive in the next Hex updates.' },
   { id: 'options', name: 'Settings', hint: 'Hex options', empty: '' },
@@ -34,6 +33,16 @@ function register(item) {
   return () => items.delete(item.id);
 }
 
+// Providers add items that change at runtime (e.g. the user's scripts): nodes() returns plain tree nodes,
+// run(win, id) runs one of their ids.
+const providers = []; // { family, prefix, nodes(), run(ctx, id) }
+function provide(p) {
+  if (!FAMILY_IDS.has(p.family) || !/^[a-z]+\.$/.test(p.prefix) || typeof p.nodes !== 'function' || typeof p.run !== 'function') {
+    throw new Error('Hex: bad provider');
+  }
+  providers.push(p);
+}
+
 // What a view may see: plain data only (a tree: families → items → deeper groups).
 function node(i) {
   const kids = [...items.values()].filter((c) => c.parent === i.id).map(node);
@@ -42,10 +51,15 @@ function node(i) {
 }
 function list() {
   return FAMILIES.map((f) => ({ id: f.id, name: f.name, hint: f.hint, empty: f.empty,
-    items: [...items.values()].filter((i) => i.family === f.id && !i.parent).map(node) }));
+    items: [...providers.filter((p) => p.family === f.id).flatMap((p) => p.nodes()),
+      ...[...items.values()].filter((i) => i.family === f.id && !i.parent).map(node)] }));
 }
 
 async function run(win, id) {
+  const prov = typeof id === 'string' && providers.find((p) => id.startsWith(p.prefix));
+  if (prov && win) {
+    try { return { ok: true, ...(await prov.run({ win, tab: win.active || null }, id)) }; } catch (e) { return { error: String(e && e.message || e) }; }
+  }
   const item = typeof id === 'string' && items.get(id);
   if (item && item.kind !== 'run') return { error: 'Not a command' };
   if (!item || !win) return { error: 'Unknown command' };
@@ -61,7 +75,9 @@ async function run(win, id) {
 
 // ---------- the wheel window ----------
 // Hex has its own small always-on-top window, so the wheel opens right at the mouse — also outside Rove's window.
-const W = 320, H = 340, CX = 160, CY = 116; // window size and where the wheel's centre sits in it
+const W = 320, H = 340, CX = 160, CY = 116; // window size and where the wheel's centre sits in it (at Normal size)
+const SIZES = { small: 0.8, normal: 1, large: 1.25 };
+const scale = () => SIZES[require('../settings').get('hexSize')] || 1;
 let wheel = null;   // BrowserWindow
 let target = null;  // the Rove window Hex acts on
 let openedAt = 0;
@@ -74,7 +90,8 @@ function wheelWindow() {
     movable: false, minimizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true, hasShadow: false,
     alwaysOnTop: true, backgroundColor: '#00000000', webPreferences: UI_PREFS });
   wheel.setAlwaysOnTop(true, 'pop-up-menu');
-  wheel.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // skipTransformProcessType: without it macOS turns Rove into a Dock-less helper app
+  wheel.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   const home = 'pb://hex/index.html';
   lockUiView(wheel.webContents, home);
   wheel.loadURL(home);
@@ -85,10 +102,13 @@ function wheelWindow() {
 
 // Put the wheel's centre at a screen point (kept on that screen).
 function place(p) {
+  // Size = the whole page zoomed (so every click and angle stays in the same units) and a matching window.
+  const s = scale(), w = Math.round(W * s), h = Math.round(H * s);
   const wa = screen.getDisplayNearestPoint(p).workArea;
-  const x = Math.round(Math.max(wa.x, Math.min(wa.x + wa.width - W, p.x - CX)));
-  const y = Math.round(Math.max(wa.y, Math.min(wa.y + wa.height - H, p.y - CY)));
-  wheel.setBounds({ x, y, width: W, height: H });
+  const x = Math.round(Math.max(wa.x, Math.min(wa.x + wa.width - w, p.x - CX * s)));
+  const y = Math.round(Math.max(wa.y, Math.min(wa.y + wa.height - h, p.y - CY * s)));
+  wheel.setBounds({ x, y, width: w, height: h });
+  wheel.webContents.setZoomFactor(s);
 }
 
 function open(win) {
@@ -128,4 +148,4 @@ function set(key, value) {
   return settings.get(key) === value ? { ok: true, families: list() } : { error: 'Use a modifier (⌘ ⌃ ⌥ / Ctrl Alt) with a letter or number, or an F-key' };
 }
 
-module.exports = { FAMILIES, register, list, run, open, close, recenter, set, isWheel, getTarget, wheelOpen, wheelWindow: () => wheel, _items: items };
+module.exports = { FAMILIES, register, provide, list, run, open, close, recenter, set, isWheel, getTarget, wheelOpen, wheelWindow: () => wheel, _items: items };

@@ -75,6 +75,8 @@ const SCHEMA = {
   hexTrigger: { default: 'Alt+H', check: (v) => (typeof v === 'string' && v.length < 40
     && /^((CmdOrCtrl|Ctrl|Alt|Shift|Super)\+)*([A-Z0-9]|F([1-9]|1[0-9]|2[0-4])|Space|Tab|Backquote|Period|Comma|Slash)$/.test(v)
     && (/\+/.test(v) || /^F\d/.test(v)) && !/^Shift\+[A-Z0-9]$/.test(v) ? v : undefined) },
+  hexSeeded: { default: false, check: bool }, // the Injector example was added once
+  hexSize: { default: 'normal', check: oneOf('small', 'normal', 'large') },
   hexMode: { default: 'smooth', check: oneOf('smooth', 'bumpy') }, // smooth: hover enters families/groups · bumpy: clicks
   hexColor: { default: 'violet', check: oneOf('violet', 'magenta', 'blue', 'cyan', 'green', 'amber', 'red') },
   remoteQrAuto: { default: true, check: bool },  // QR pops up by itself while no phone is connected (only with the remote on)

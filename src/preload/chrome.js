@@ -8,10 +8,11 @@ const SEND = new Set([
   'nav', 'navigate', 'find', 'find:close', 'qr:toggle',
   'fav:remove', 'fav:reorder', 'fav:open', 'history:open-page', 'downloads:action', 'settings:set', 'settings:open', 'omnibox:delete', 'save-prompt:answer', 'win:new', 'update:open',
 ]);
-const INVOKE = new Set(['hex:run', 'hex:set', 'hex:close', 'hex:recenter', 'fav:add-current', 'fav:update', 'history:recent', 'menu:popup', 'omnibox:local', 'omnibox:remote', 'tabs:search-data']);
+const INVOKE = new Set(['hex:run', 'hex:set', 'hex:close', 'hex:recenter',
+  'hexs:list', 'hexs:save', 'hexs:delete', 'hexs:dup', 'hexs:fav', 'hexs:pin', 'hexs:target', 'hexs:run', 'fav:add-current', 'fav:update', 'history:recent', 'menu:popup', 'omnibox:local', 'omnibox:remote', 'tabs:search-data']);
 const LISTEN = new Set([
   'state', 'favorites', 'downloads', 'settings', 'remote-status', 'command', 'hud:state',
-  'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt', 'hex:open', 'hex:closed',
+  'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt', 'hex:open', 'hex:closed', 'hexs:changed',
 ]);
 
 // Only our own UI pages get the bridge — never a web page, even if one ended up in a UI view.
