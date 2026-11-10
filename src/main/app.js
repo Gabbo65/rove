@@ -56,11 +56,11 @@ function boot() {
       db.kv.set('pinnedTabs', list);
     },
     toggleFavoritesBar() { settings.set({ showFavoritesBar: !settings.get('showFavoritesBar') }); },
-    openInternal(page, win = hub.current()) {
-      const url = `pb://${page}/`;
+    openInternal(page, win = hub.current(), section = '') {
+      const url = `pb://${page}/${/^[a-z-]+$/.test(section) ? `#${section}` : ''}`;
       if (!win) return hub.create({ url });
       const existing = win.tabs.find((t) => urls.internalPage(t.url) === page);
-      if (existing) win.activate(existing); else win.newTab(url);
+      if (existing) { win.activate(existing); if (section) existing.load(url); } else win.newTab(url);
     },
     cycleTab(dir) {
       const w = hub.current();

@@ -45,11 +45,17 @@ function api(hub) {
     get: async () => ({
       settings: settings.all(),
       engines: Object.entries(urls.ENGINES).map(([id, e]) => ({ id, name: e.name })),
+      look: (({ THEMES, ACCENTS, glassSupported, glass }) => ({ accents: ACCENTS, glassSupported: glassSupported(), clearSupported: process.platform === 'darwin', reducedTransparency: glass().reduced,
+        themes: Object.entries(THEMES).map(([id, t]) => ({ id, name: t.name, light: t.light, dark: t.dark })) }))(require('./look')),
       downloadsFolder: downloads.folder(),
       about: updates.state(),
       encryption: await passwords.available(),
     }),
     set: (_ctx, patch) => { settings.set(patch || {}); return settings.all(); },
+    chooseNewTabImage: async (ctx) => ({ error: await require('./newtab-bg').choose(ctx.win), settings: settings.all() }),
+    exportSetup: (ctx) => require('./setup-file').exportTo(ctx.win),
+    importSetup: async (ctx) => ({ ...(await require('./setup-file').importFrom(ctx.win)), settings: settings.all() }),
+    clearNewTabImage: () => { require('./newtab-bg').clear(); return settings.all(); },
     reset: (_ctx, key) => { settings.reset(String(key)); return settings.all(); },
     chooseDownloadDir: async (ctx) => {
       const r = await dialog.showOpenDialog(ctx.win.base, { properties: ['openDirectory', 'createDirectory'], defaultPath: downloads.folder() });

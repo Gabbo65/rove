@@ -8,6 +8,7 @@ import * as popups from './popups.js';
 import './omnibox.js';
 import './savepop.js';
 import './tabsearch.js';
+import { applyLayout } from './layout.js';
 
 if (new URLSearchParams(location.search).get('private')) document.documentElement.classList.add('private');
 
@@ -18,6 +19,8 @@ const reportRect = () => {
   pb.send('ui:content-rect', { x: r.left, y: r.top, width: r.width, height: r.height });
 };
 new ResizeObserver(reportRect).observe(stage);
+// A new look (Settings → Appearance) can change the toolbar height: report once its stylesheet is in.
+document.addEventListener('load', (e) => { if (e.target.matches?.('link[data-look]')) reportRect(); }, true);
 window.addEventListener('resize', reportRect);
 
 pb.on('state', (s) => {
@@ -37,6 +40,7 @@ pb.on('favorites', (list) => {
 pb.on('downloads', renderDownloads);
 
 pb.on('settings', (s) => {
+  applyLayout(s);
   document.body.classList.toggle('no-favbar', !s.showFavoritesBar);
   reportRect();
 });

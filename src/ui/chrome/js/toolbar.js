@@ -66,6 +66,7 @@ url.addEventListener('keydown', (e) => {
 back.onclick = () => pb.send('nav', 'back');
 forward.onclick = () => pb.send('nav', 'forward');
 reload.onclick = () => pb.send('nav', active?.loading ? 'stop' : 'reload');
+$('home-btn').onclick = () => pb.send('nav', 'home');
 
 // Phone remote button: label shows connection; click always toggles the QR (whatever the connection state).
 const remoteBtn = $('remote-btn');

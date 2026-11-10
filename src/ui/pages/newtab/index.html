@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src data: https: http:; style-src 'self' pb: 'unsafe-inline'; script-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src data: https: http: pb:; style-src 'self' pb: 'unsafe-inline'; script-src 'self'">
 <title>New Tab</title>
 <link rel="stylesheet" href="pb://shared/theme.css">
 <style>
@@ -25,10 +25,36 @@
   #hint { color: var(--muted); font-size: 12px; text-align: center; margin-top: 36px; }
   .private-note { max-width: 520px; margin: 28px auto 0; color: var(--muted); font-size: 13px; line-height: 1.6; text-align: center; }
   [hidden] { display: none !important; }
+
+  /* Customization (Settings → New tab page) */
+  #bg { position: fixed; inset: 0; z-index: -1; background-size: cover; background-position: center; }
+  #bg::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,var(--dim, 0)); }
+  .g-rove   { background: linear-gradient(160deg, #1e1b4b, #4338ca 55%, #a78bfa); }
+  .g-dusk   { background: linear-gradient(160deg, #2b1055, #7597de); }
+  .g-sunset { background: linear-gradient(160deg, #42275a, #ba5370 60%, #f4a261); }
+  .g-ocean  { background: linear-gradient(160deg, #0f2027, #203a43 50%, #2c5364); }
+  .g-forest { background: linear-gradient(160deg, #134e5e, #71b280); }
+  .g-ember  { background: linear-gradient(160deg, #200122, #6f0000 55%, #d4572a); }
+  body.has-bg { background: #111; color: #fff; }
+  body.has-bg .tile, body.has-bg #hint, body.has-bg .private-note, body.has-bg #greet { color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+  body.has-bg .tile:hover { background: rgba(255,255,255,.14); }
+  body.has-bg #clock { color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.45); }
+  #clockbox { text-align: center; margin-bottom: 28px; }
+  #clock { font-size: 72px; font-weight: 300; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+  #greet { font-size: 18px; margin-top: 10px; color: var(--muted); }
+  body.no-search #tiles { margin-top: 0; }
+  #customize { position: fixed; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+    border: none; border-radius: 16px; background: color-mix(in srgb, var(--card) 85%, transparent); color: var(--fg); font: inherit;
+    font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.15); opacity: .75; cursor: pointer; }
+  #customize:hover { opacity: 1; }
+  #customize svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 </style>
+<link rel="stylesheet" href="pb://shared/look.css" data-look>
 </head>
-<body>
+<body class="pg-newtab">
+<div id="bg" hidden></div>
 <main>
+  <div id="clockbox" hidden><div id="clock"></div><div id="greet" hidden></div></div>
   <form id="f">
     <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
     <input id="q" placeholder="Search the web" autocomplete="off">
@@ -41,6 +67,7 @@
     Downloads and favorites you add are kept. Your internet provider and the sites you visit can still see your activity.
   </div>
 </main>
+<button id="customize" title="Change background, clock and more"><svg viewBox="0 0 16 16"><path d="M10.5 2.5l3 3-8 8H2.5v-3z"/><path d="M9 4l3 3"/></svg>Customize</button>
 <script src="newtab.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ const histBtn = $('hist-btn'), histPanel = $('hist-panel');
 histBtn.dataset.popupAnchor = '';
 
 function placeUnder(panel, btn) {
+  if (!btn.offsetParent) btn = $('menu-btn'); // its button is hidden (Settings → Appearance → Toolbar)
   const r = btn.getBoundingClientRect();
   panel.style.right = `${Math.max(8, innerWidth - r.right - 8)}px`;
 }

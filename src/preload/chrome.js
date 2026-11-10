@@ -21,7 +21,7 @@ const OWN_UI = /^pb:\/\/(chrome|hud)\//i.test(location.href) && window.top === w
 window.addEventListener('dragover', (e) => e.preventDefault(), true);
 window.addEventListener('drop', (e) => e.preventDefault(), true);
 
-if (OWN_UI) platformLabels();
+if (OWN_UI) { platformLabels(); lookSwapper(); }
 
 if (OWN_UI) contextBridge.exposeInMainWorld('pb', {
   send(channel, ...args) { if (SEND.has(channel)) ipcRenderer.send(channel, ...args); },
@@ -59,5 +59,25 @@ function platformLabels() {
         else fix(m.target);
       }
     }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title'] });
+  });
+}
+
+// Appearance changed: load the new pb://shared/look.css next to the old one, then drop the old (no flash).
+function lookSwapper() {
+  let n = 0;
+  ipcRenderer.on('pb:look', () => {
+    const links = document.querySelectorAll('link[data-look]');
+    const last = links[links.length - 1];
+    if (!last) return;
+    const next = last.cloneNode();
+    const u = new URL(last.href); u.searchParams.set('v', `${Date.now()}-${++n}`);
+    next.href = u.href;
+    // Once loaded, drop only the older sheets (before it); a newer one may already be on its way after it.
+    next.onload = next.onerror = () => {
+      for (const l of document.querySelectorAll('link[data-look]')) {
+        if (l !== next && (l.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING)) l.remove();
+      }
+    };
+    last.after(next);
   });
 }

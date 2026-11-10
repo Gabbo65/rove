@@ -1,5 +1,5 @@
 // All windows + the glue between them and everything global (favorites, downloads, phone remote, settings).
-const { BaseWindow, nativeTheme } = require('electron');
+const { BaseWindow, nativeTheme, webContents } = require('electron');
 const { Win } = require('./window');
 const { Tab } = require('./tab');
 const urls = require('./urls');
@@ -104,11 +104,13 @@ const hub = {
 
   // ---------- phone remote ----------
   setRemote(r) { remote = r; },
+  // Show the QR by itself? Only with the phone remote on and "Show the QR code…" on.
+  qrAuto() { return settings.get('remoteEnabled') && settings.get('remoteQrAuto'); },
   remoteStatus() { return remote ? remote.status() : { clients: 0, url: '', qr: '' }; },
   onRemoteStatus(status, { clientsChanged } = {}) {
     for (const w of windows) {
-      // QR shows while no phone is connected, hides when one joins (the toolbar button can still toggle it).
-      if (clientsChanged) w.qrVisible = status.clients === 0;
+      // QR shows while no phone is connected (if that's on), hides when one joins (the toolbar button can still toggle it).
+      if (clientsChanged) w.qrVisible = status.clients === 0 && hub.qrAuto();
       w.sendUI('remote-status', status);
       w.sendHud();
     }
@@ -139,10 +141,27 @@ settings.on('change', (changed, all) => {
   hub.broadcastUI('settings', all);
   hub.toPages('settings', 'settings', all);
   if ('theme' in changed) nativeTheme.themeSource = all.theme;
+  if (settings.LOOK_KEYS.some((k) => k in changed)) hub.lookChanged();
+  if (settings.NEWTAB_KEYS.some((k) => k in changed)) {
+    const look = Object.fromEntries(settings.NEWTAB_KEYS.map((k) => [k, all[k]]));
+    hub.toPages('newtab', 'look', look);
+  }
+  if ('remoteQrAuto' in changed || 'remoteEnabled' in changed) {
+    const show = hub.qrAuto() && hub.remoteStatus().clients === 0;
+    for (const w of windows) if (w.qrVisible !== show) w.toggleQR(show);
+  }
 });
-nativeTheme.on('updated', () => {
-  for (const w of windows) for (const t of w.tabs) t.applyBackground();
-});
+nativeTheme.on('updated', () => hub.lookChanged());
+// Appearance changed: every open Rove page reloads its look.css; windows recolor their native parts.
+hub.lookChanged = () => {
+  for (const wc of webContents.getAllWebContents()) {
+    if (!wc.isDestroyed() && /^pb:\/\//.test(wc.getURL())) wc.send('pb:look');
+  }
+  for (const w of windows) {
+    w.applyLook();
+    for (const t of w.tabs) t.applyBackground();
+  }
+};
 
 // Sleeping tabs: every minute, unload tabs nobody looked at for a while (never the visible one or one playing sound).
 setInterval(() => hub.sleepIdleTabs(), 60_000).unref?.();

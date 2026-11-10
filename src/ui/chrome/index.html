@@ -6,6 +6,7 @@
 <title>Rove</title>
 <link rel="stylesheet" href="pb://shared/theme.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="pb://shared/look.css" data-look>
 </head>
 <body>
   <div id="top">
@@ -13,7 +14,7 @@
     <div id="tabstrip">
       <div class="traffic-space"></div>
       <div id="tabs"></div>
-      <button id="newtab" class="icon" title="New tab (⌘T)"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></button>
+      <button id="newtab" class="icon" title="New tab (⌘T)"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg><span class="lbl">New tab</span></button>
       <div class="drag-fill"></div>
       <span id="private-badge" hidden>InPrivate</span>
       <button id="tabsearch-btn" class="icon" title="Search tabs (⇧⌘A)">
@@ -28,6 +29,9 @@
       <button id="reload" class="icon" title="Reload (⌘R)">
         <svg class="i-reload" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3"/></svg>
         <svg class="i-stop" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+      <button id="home-btn" class="icon" title="Home">
+        <svg viewBox="0 0 16 16"><path d="M2.5 7.5L8 3l5.5 4.5M4 6.5V13h3V9.5h2V13h3V6.5"/></svg>
       </button>
       <form id="urlform" autocomplete="off">
         <span id="lock"></span>
@@ -45,7 +49,7 @@
       <button id="dl-btn" class="icon" title="Downloads (⇧⌘J)" hidden>
         <svg viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10"/></svg>
       </button>
-      <button id="remote-btn" title="Show or hide the phone QR code (⇧⌘Q)">
+      <button id="remote-btn" title="Show or hide the phone QR code (⇧⌘P)">
         <span class="dot"></span><span id="remote-label">No remote</span>
       </button>
       <button id="update-btn" hidden>Update</button>
@@ -60,6 +64,7 @@
   </div>
 
   <!-- The page shows here (a separate view underneath). Popups below are drawn over it while open. -->
+  <aside id="side"></aside>
   <main id="stage">
     <div id="hist-panel" class="popup" hidden>
       <div class="popup-head"><span>History</span></div>

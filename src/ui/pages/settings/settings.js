@@ -10,7 +10,15 @@ function render(settings) {
   for (const r of document.querySelectorAll('input[name=startPage]')) r.checked = r.value === S.startPage;
   $('startUrl').hidden = S.startPage !== 'url';
   if (document.activeElement !== $('startUrl')) $('startUrl').value = S.startUrl || '';
-  for (const b of $('theme').children) b.classList.toggle('on', b.dataset.v === S.theme);
+  for (const id of ['theme', 'uiCorners', 'uiDensity', 'uiFont', 'tabsPosition', 'ntBackground', 'ntClock', 'toolbarStyle', 'pagesStyle']) for (const b of $(id).children) b.classList.toggle('on', b.dataset.v === S[id]);
+  renderNewTab();
+  if (document.activeElement !== $('custom-css')) $('custom-css').value = S.customCss || '';
+  $('glass-level-row').hidden = S.toolbarStyle !== 'docked' && S.pagesStyle !== 'glass';
+  $('glass-blur-row').hidden = $('glass-level-row').hidden || !LOOK.clearSupported;
+  if (document.activeElement !== $('glassLevel')) $('glassLevel').value = String(S.glassLevel);
+  $('glassLevel-val').textContent = `${S.glassLevel}%`;
+  renderToolbar();
+  renderLook();
   $('searchEngine').value = S.searchEngine;
   $('custom-box').hidden = S.searchEngine !== 'custom';
   if (S.searchEngine === 'custom' && !$('custom-box').contains(document.activeElement)) {
@@ -21,10 +29,15 @@ function render(settings) {
   $('sleepAfterMinutes').value = String(S.sleepAfterMinutes);
   $('sleepAfterMinutes').disabled = !S.sleepingTabs;
   $('dl-reset').hidden = !S.downloadDir;
+  // Depends on the phone remote: off → greyed out (your choice is kept for when you turn the remote back on).
+  $('remoteQrAuto').disabled = !S.remoteEnabled;
+  $('remoteQrAuto').checked = !!S.remoteEnabled && !!S.remoteQrAuto;
+  $('qr-auto-row').classList.toggle('disabled', !S.remoteEnabled);
 }
 const set = async (patch) => render(await call('set', patch));
 
 for (const el of document.querySelectorAll('[data-setting]')) el.addEventListener('change', () => set({ [el.dataset.setting]: el.checked }));
+$('remoteQrAuto').addEventListener('change', () => { if (S.remoteEnabled) set({ remoteQrAuto: $('remoteQrAuto').checked }); });
 for (const r of document.querySelectorAll('input[name=startPage]')) r.addEventListener('change', () => set({ startPage: r.value }));
 $('startUrl').addEventListener('change', async () => {
   let v = $('startUrl').value.trim();
@@ -36,7 +49,173 @@ $('startUrl').addEventListener('change', async () => {
   $('startUrl-hint').textContent = ok ? '' : 'That doesn’t look like a web address';
   if (!ok) S.startUrl = before;
 });
-for (const b of $('theme').children) b.onclick = () => set({ theme: b.dataset.v });
+for (const id of ['theme', 'uiCorners', 'uiDensity', 'uiFont', 'tabsPosition', 'ntClock', 'toolbarStyle', 'pagesStyle']) for (const b of $(id).children) b.onclick = () => set({ [id]: b.dataset.v });
+
+// ---------- new tab page ----------
+function renderNewTab() {
+  $('nt-grad-row').hidden = S.ntBackground !== 'gradient';
+  $('nt-img-row').hidden = S.ntBackground !== 'image';
+  $('nt-dim-row').hidden = S.ntBackground === 'plain';
+  for (const b of $('nt-grads').children) b.classList.toggle('on', b.dataset.v === S.ntGradient);
+  $('nt-thumb').style.backgroundImage = S.ntImage ? `url("pb://shared/newtab-bg?v=${Number(S.ntImage)}")` : '';
+  $('nt-img-remove').hidden = !S.ntImage;
+  if (document.activeElement !== $('ntDim')) $('ntDim').value = String(S.ntDim);
+}
+for (const b of $('ntBackground').children) {
+  b.onclick = async () => {
+    // "Picture" with no picture yet: ask for one first
+    if (b.dataset.v === 'image' && !S.ntImage) return chooseNewTabImage();
+    set({ ntBackground: b.dataset.v });
+  };
+}
+async function chooseNewTabImage() {
+  const r = await call('chooseNewTabImage');
+  $('nt-img-hint').textContent = r.error || 'PNG, JPEG, WebP, GIF or AVIF, up to 25 MB. Rove keeps its own copy.';
+  $('nt-img-hint').style.color = r.error ? 'var(--danger)' : '';
+  render(r.settings);
+}
+for (const b of $('nt-grads').children) b.onclick = () => set({ ntGradient: b.dataset.v });
+$('nt-img-choose').onclick = chooseNewTabImage;
+$('nt-img-remove').onclick = async () => render(await call('clearNewTabImage'));
+// ---------- custom CSS + setup file ----------
+$('custom-css-apply').onclick = async () => {
+  const css = $('custom-css').value;
+  await set({ customCss: css });
+  $('custom-css-hint').textContent = S.customCss === css ? 'Applied' : 'Too long (50,000 characters at most)';
+};
+$('custom-css-clear').onclick = async () => { $('custom-css').value = ''; await set({ customCss: '' }); $('custom-css-hint').textContent = 'Cleared'; };
+$('custom-css').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); $('custom-css-apply').click(); } });
+$('setup-export').onclick = async () => { const r = await call('exportSetup'); if (r.ok) flash($('setup-export'), 'Saved'); };
+$('setup-import').onclick = async () => {
+  const r = await call('importSetup');
+  if (r.canceled) return;
+  if (r.error) return alert(r.error);
+  render(r.settings);
+  flash($('setup-import'), 'Imported');
+};
+let glassTimer = null;
+$('glassLevel').addEventListener('input', () => {
+  $('glassLevel-val').textContent = `${$('glassLevel').value}%`;
+  clearTimeout(glassTimer);
+  glassTimer = setTimeout(() => set({ glassLevel: Number($('glassLevel').value) }), 80);
+});
+$('ntDim').addEventListener('input', () => set({ ntDim: Number($('ntDim').value) }));
+
+// ---------- toolbar buttons ----------
+const TB = { back: 'Back', forward: 'Forward', reload: 'Reload', home: 'Home', address: 'Address bar', history: 'History',
+  downloads: 'Downloads', remote: 'Phone remote', menu: '… menu (Settings and more)' };
+const TB_FIXED = ['address', 'menu'];
+const TB_DEFAULT = ['back', 'forward', 'reload', 'address', 'history', 'downloads', 'remote', 'menu'];
+let tbDrag = null;
+function renderToolbar() {
+  if (tbDrag || !Array.isArray(S.toolbarLayout)) return;
+  const shown = S.toolbarLayout;
+  const order = [...shown, ...Object.keys(TB).filter((id) => !shown.includes(id))];
+  $('tb-list').replaceChildren(...order.map((id) => {
+    const row = Object.assign(document.createElement('div'), { className: 'tb-row', draggable: true });
+    row.dataset.id = id;
+    row.append(Object.assign(document.createElement('span'), { className: 'grip', textContent: '⋮⋮' }),
+      Object.assign(document.createElement('span'), { className: 'nm', textContent: TB[id] }));
+    if (TB_FIXED.includes(id)) row.append(Object.assign(document.createElement('span'), { className: 'fixed', textContent: 'Always shown' }));
+    else {
+      const sw = document.createElement('label'); sw.className = 'switch';
+      sw.innerHTML = '<input type="checkbox"><span></span>';
+      const box = sw.querySelector('input');
+      box.checked = shown.includes(id);
+      box.addEventListener('change', saveToolbar);
+      row.append(sw);
+    }
+    return row;
+  }));
+}
+function saveToolbar() {
+  const layout = [...$('tb-list').children].filter((r) => TB_FIXED.includes(r.dataset.id) || r.querySelector('input')?.checked).map((r) => r.dataset.id);
+  set({ toolbarLayout: layout });
+}
+$('tb-list').addEventListener('dragstart', (e) => {
+  tbDrag = e.target.closest('.tb-row');
+  if (!tbDrag) return;
+  tbDrag.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', tbDrag.dataset.id);
+});
+const clearOver = () => { for (const r of $('tb-list').children) r.classList.remove('over-top', 'over-bottom'); };
+$('tb-list').addEventListener('dragover', (e) => {
+  const row = e.target.closest('.tb-row');
+  if (!tbDrag || !row) return;
+  e.preventDefault();
+  clearOver();
+  if (row === tbDrag) return;
+  const r = row.getBoundingClientRect();
+  row.classList.add(e.clientY < r.top + r.height / 2 ? 'over-top' : 'over-bottom');
+});
+$('tb-list').addEventListener('drop', (e) => {
+  const row = e.target.closest('.tb-row');
+  if (!tbDrag || !row) return;
+  e.preventDefault();
+  if (row !== tbDrag) row.classList.contains('over-top') ? row.before(tbDrag) : row.after(tbDrag);
+});
+$('tb-list').addEventListener('dragend', () => {
+  if (!tbDrag) return;
+  tbDrag.classList.remove('dragging');
+  clearOver();
+  tbDrag = null;
+  saveToolbar();
+});
+$('tb-reset').onclick = () => set({ toolbarLayout: TB_DEFAULT, tabsPosition: 'top' });
+
+// ---------- appearance ----------
+let LOOK = { themes: [], accents: [] };
+const dark = () => S.theme === 'dark' || (S.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+function buildLook(look) {
+  LOOK = look;
+  $('look-themes').replaceChildren(...look.themes.map((t) => {
+    const b = Object.assign(document.createElement('button'), { className: 'theme' });
+    b.dataset.v = t.id;
+    b.innerHTML = '<span class="pv"><i class="strip"></i><span class="bar"><b></b><s></s></span><i class="page"></i></span><span class="nm"></span>';
+    b.querySelector('.nm').textContent = t.name;
+    b.onclick = () => set({ lookTheme: t.id });
+    return b;
+  }));
+  const pick = $('look-accents').querySelector('.custom');
+  for (const c of look.accents) {
+    const b = Object.assign(document.createElement('button'), { className: 'acc', title: c });
+    b.dataset.v = c; b.style.background = c;
+    b.onclick = () => set({ accentColor: c });
+    pick.before(b);
+  }
+  $('look-accents').querySelector('.auto').onclick = () => set({ accentColor: '' });
+  let pickTimer = null; // dragging in the color picker: update a few times a second, not on every move
+  $('look-accent-pick').addEventListener('input', (e) => {
+    clearTimeout(pickTimer);
+    pickTimer = setTimeout(() => set({ accentColor: e.target.value }), 120);
+  });
+  render(S); // also shows/hides rows that depend on this system (Blur switch)
+}
+function renderLook() {
+  if (!LOOK.themes.length) return;
+  // Docked Glass needs the system's blur (macOS, Windows 11); "Reduce transparency" keeps everything solid.
+  $('toolbarStyle').querySelector('[data-v=docked]').disabled = !LOOK.glassSupported;
+  $('glass-hint').textContent = LOOK.reducedTransparency ? 'Your system’s “Reduce transparency” setting is on, so Rove stays solid.'
+    : !LOOK.glassSupported ? 'Docked Glass needs macOS or Windows 11 — this system can’t blur behind windows.'
+      : 'Docked Glass: tabs, toolbar and favorites bar turn to frosted glass — what’s behind the window shows through, blurred.';
+  const mode = dark() ? 'dark' : 'light';
+  for (const b of $('look-themes').children) {
+    const t = LOOK.themes.find((x) => x.id === b.dataset.v), p = t[mode];
+    b.classList.toggle('on', S.lookTheme === t.id);
+    b.querySelector('.strip').style.background = p.strip;
+    b.querySelector('.bar').style.background = p.chrome;
+    b.querySelector('.bar b').style.background = p.field;
+    b.querySelector('.bar s').style.background = S.accentColor || p.accent;
+    b.querySelector('.page').style.background = p.page;
+  }
+  const custom = S.accentColor && !LOOK.accents.includes(S.accentColor);
+  for (const b of $('look-accents').querySelectorAll('button.acc')) b.classList.toggle('on', b.dataset.v === (S.accentColor || ''));
+  $('look-accents').querySelector('.custom').classList.toggle('on', !!custom);
+  if (S.accentColor) $('look-accent-pick').value = S.accentColor;
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderLook);
+$('look-reset').onclick = () => confirm('Reset the appearance to Rove\'s default look? Your theme, accent color, glass, corners, toolbar size and font will be reset.') && set({ lookTheme: 'default', accentColor: '', toolbarStyle: 'solid', pagesStyle: 'solid', glassLevel: 85, glassBlur: true, uiCorners: 'round', uiDensity: 'normal', uiFont: 'system' });
 $('searchEngine').addEventListener('change', () => set({ searchEngine: $('searchEngine').value }));
 $('custom-save').onclick = async () => {
   const c = { name: $('custom-name').value.trim(), url: $('custom-url').value.trim(), suggestUrl: $('custom-suggest').value.trim() };
@@ -223,6 +402,7 @@ async function load() {
   $('searchEngine').replaceChildren(...data.engines.map((e) => Object.assign(document.createElement('option'), { value: e.id, textContent: e.name })),
     Object.assign(document.createElement('option'), { value: 'custom', textContent: 'Custom…' }));
   render(data.settings);
+  buildLook(data.look);
   $('dl-folder').textContent = data.downloadsFolder;
   renderAbout(data.about);
   highlight();

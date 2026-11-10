@@ -1,4 +1,4 @@
-// Horizontal drag-to-reorder (tabs and favorites).
+// Drag-to-reorder along one axis (tabs and favorites: left/right; vertical tabs: up/down).
 // The item follows only the mouse's left/right position, never leaves its row (it stops at the edge when the
 // mouse goes past), and the others make room as it passes them. A plain click (no movement) is still a click.
 const THRESHOLD = 5; // px of movement before a press becomes a drag
@@ -8,8 +8,9 @@ const THRESHOLD = 5; // px of movement before a press becomes a drag
  * @param opts.item  selector for draggable items
  * @param opts.group (el) => key; items only swap with others of the same group (pinned / normal tabs)
  * @param opts.drop  (el, orderedItems) => void, called once when the drag ends with a changed order
+ * @param opts.axis  () => 'x' | 'y' (default 'x'); read when a drag starts
  */
-export function horizontalDrag(container, { item, group = () => 0, drop }) {
+export function horizontalDrag(container, { item, group = () => 0, drop, axis = () => 'x' }) {
   let drag = null;
   let swallowClick = false;
 
@@ -17,7 +18,9 @@ export function horizontalDrag(container, { item, group = () => 0, drop }) {
     if (e.button !== 0) return;
     const el = e.target.closest(item);
     if (!el || !container.contains(el) || e.target.closest('button.close')) return;
-    drag = { el, pointerId: e.pointerId, startX: e.clientX, started: false, startOrder: [...container.children] };
+    const y = axis() === 'y';
+    const A = y ? { pos: 'clientY', lo: 'top', hi: 'bottom', size: 'height', t: 'translateY' } : { pos: 'clientX', lo: 'left', hi: 'right', size: 'width', t: 'translateX' };
+    drag = { el, pointerId: e.pointerId, A, startX: e[A.pos], started: false, startOrder: [...container.children] };
   });
 
   // While dragging, follow the mouse anywhere in the window (not just over the row).
@@ -25,15 +28,15 @@ export function horizontalDrag(container, { item, group = () => 0, drop }) {
     if (!drag || e.pointerId !== drag.pointerId) return;
     if (!(e.buttons & 1)) return finish(e);            // button was released somewhere we didn't hear about
     if (!drag.started) {
-      if (Math.abs(e.clientX - drag.startX) < THRESHOLD) return;
+      if (Math.abs(e[drag.A.pos] - drag.startX) < THRESHOLD) return;
       drag.started = true;
       try { drag.el.setPointerCapture(e.pointerId); } catch {} // keep following even outside the window
       const r = drag.el.getBoundingClientRect();
-      drag.grab = drag.startX - r.left;                 // where on the item you grabbed it
+      drag.grab = drag.startX - r[drag.A.lo];           // where on the item you grabbed it
       drag.el.classList.add('hdragging');
       container.classList.add('hdrag-active');
     }
-    move(e.clientX);
+    move(e[drag.A.pos]);
   });
 
   const finish = (e) => {
@@ -57,17 +60,17 @@ export function horizontalDrag(container, { item, group = () => 0, drop }) {
   container.addEventListener('dragstart', (e) => { if (e.target.closest?.(item) || e.target.parentElement?.closest(item)) e.preventDefault(); });
   container.addEventListener('click', (e) => { if (swallowClick) { e.stopPropagation(); e.preventDefault(); } }, true);
 
-  function move(clientX) {
-    const el = drag.el;
+  function move(pos) {
+    const el = drag.el, { lo, hi, size, t } = drag.A;
     const peers = [...container.querySelectorAll(item)].filter((x) => group(x) === group(el));
     // Limits: the row (and the item's own group) — the item stops at the edge.
     el.style.transform = '';
     const box = container.getBoundingClientRect();
     const first = peers[0].getBoundingClientRect(), last = peers[peers.length - 1].getBoundingClientRect();
-    const minLeft = Math.max(box.left, first.left);
-    const maxRight = Math.min(box.right, last.right);
-    const width = el.getBoundingClientRect().width;
-    const left = Math.max(minLeft, Math.min(clientX - drag.grab, maxRight - width));
+    const minLeft = Math.max(box[lo], first[lo]);
+    const maxRight = Math.min(box[hi], last[hi]);
+    const width = el.getBoundingClientRect()[size];
+    const left = Math.max(minLeft, Math.min(pos - drag.grab, maxRight - width));
     const right = left + width;
 
     // Make room: swap with a neighbour once the item's leading edge crosses that neighbour's middle
@@ -75,7 +78,7 @@ export function horizontalDrag(container, { item, group = () => 0, drop }) {
     for (const other of peers) {
       if (other === el) continue;
       const r = other.getBoundingClientRect();
-      const mid = r.left + r.width / 2;
+      const mid = r[lo] + r[size] / 2;
       const before = el.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_PRECEDING;
       if (before && left < mid) { container.insertBefore(el, other); break; }
       if (!before && right > mid) { container.insertBefore(el, other.nextSibling); }
@@ -83,8 +86,8 @@ export function horizontalDrag(container, { item, group = () => 0, drop }) {
     // Moving the element drops the mouse capture; take it back so we keep following outside the window.
     try { if (!el.hasPointerCapture(drag.pointerId)) el.setPointerCapture(drag.pointerId); } catch {}
     // Draw it exactly under the mouse (horizontally only).
-    const natural = el.getBoundingClientRect().left;
-    el.style.transform = `translateX(${left - natural}px)`;
+    const natural = el.getBoundingClientRect()[lo];
+    el.style.transform = `${t}(${left - natural}px)`;
   }
 
   return { get dragging() { return !!drag?.started; } };

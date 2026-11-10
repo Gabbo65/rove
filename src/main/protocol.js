@@ -28,6 +28,15 @@ function registerScheme() {
 async function handler(request) {
   let url;
   try { url = new URL(request.url); } catch { return new Response('Bad request', { status: 400 }); }
+  if (url.hostname === 'shared' && url.pathname === '/look.css') { // generated from the Appearance settings
+    return new Response(require('./look').css(undefined, { custom: url.searchParams.get('custom') !== '0' }), { status: 200, headers: { 'Content-Type': TYPES['.css'], 'Cache-Control': 'no-store' } });
+  }
+  if (url.hostname === 'shared' && url.pathname === '/newtab-bg') { // your New Tab background picture
+    const bg = require('./newtab-bg').current();
+    if (!bg) return new Response('Not found', { status: 404 });
+    try { return new Response(await fs.readFile(bg.file), { status: 200, headers: { 'Content-Type': bg.type, 'Cache-Control': 'no-cache' } }); }
+    catch { return new Response('Not found', { status: 404 }); }
+  }
   const dir = HOSTS[url.hostname];
   if (!dir) return new Response('Not found', { status: 404 });
   const root = path.join(UI, dir);

@@ -32,6 +32,35 @@ module.exports = [
     },
   },
   {
+    name: 'QR: "Show the QR code when no phone is connected" — off = no pop-up; needs the phone remote on',
+    async run(t) {
+      t.settings.set({ remoteEnabled: true, remoteQrAuto: false });
+      let w = await t.fresh();
+      t.assert.equal(w.qrVisible, false, 'new window: no QR');
+      await t.ui(`document.getElementById('remote-btn').click()`);
+      await t.until(() => w.qrVisible && w.hudSize.height > 150, { message: 'the button still shows it' });
+      w.toggleQR(false);
+      t.settings.set({ remoteQrAuto: true });
+      await t.until(() => w.qrVisible, { message: 'turned on → shown (no phone connected)' });
+      // the settings page: greyed out while the phone remote is off, choice kept
+      await t.go('pb://settings/#remote');
+      await t.until(async () => t.page(`document.getElementById('remoteQrAuto').checked && !document.getElementById('remoteQrAuto').disabled`), { message: 'switch on' });
+      await t.page(`document.querySelector('[data-setting=remoteEnabled]').click()`);
+      await t.until(async () => t.page(`{ const b = document.getElementById('remoteQrAuto'); b.disabled && !b.checked }`), { message: 'greyed out with the remote off' });
+      t.assert.equal(w.qrVisible, false, 'remote off → QR not shown by itself');
+      t.assert.equal(t.settings.get('remoteQrAuto'), true, 'choice kept');
+      await t.page(`document.querySelector('[data-setting=remoteEnabled]').click()`);
+      await t.until(async () => t.page(`{ const b = document.getElementById('remoteQrAuto'); !b.disabled && b.checked }`), { message: 'back with the remote on' });
+      await t.until(() => w.qrVisible, { message: 'QR back' });
+      await t.page(`document.getElementById('remoteQrAuto').click()`);
+      await t.until(() => t.settings.get('remoteQrAuto') === false && !w.qrVisible, { message: 'switched off from the page' });
+      t.settings.set({ remoteEnabled: true, remoteQrAuto: true });
+      // shortcut: ⇧⌘P (⇧⌘Q logs you out of macOS)
+      const item = require('electron').Menu.getApplicationMenu().items.flatMap((m) => m.submenu?.items || []).find((i) => i.label === 'Show Remote QR Code');
+      t.assert.equal(item.accelerator, 'CmdOrCtrl+Shift+P');
+    },
+  },
+  {
     name: 'screenshots: page + toolbar, popup over page, find bar + QR',
     async run(t) {
       const w = await t.fresh();

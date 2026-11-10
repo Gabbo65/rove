@@ -11,12 +11,40 @@ const bool = (v) => (typeof v === 'boolean' ? v : undefined);
 const oneOf = (...opts) => (v) => (opts.includes(v) ? v : undefined);
 const webUrl = (v) => (typeof v === 'string' && (v === '' || /^https?:\/\/\S+$/i.test(v)) ? v : undefined);
 const SEARCH_ENGINES = ['google', 'bing', 'duckduckgo', 'ecosia', 'brave', 'custom'];
+// Toolbar items, in their default order. The address bar and the … menu can be moved but never hidden.
+const TOOLBAR_ITEMS = ['back', 'forward', 'reload', 'home', 'address', 'history', 'downloads', 'remote', 'menu'];
+const toolbarLayout = (v) => (Array.isArray(v) && v.every((x) => TOOLBAR_ITEMS.includes(x)) && new Set(v).size === v.length
+  && v.includes('address') && v.includes('menu') ? [...v] : undefined);
 
 const SCHEMA = {
   // General
   startPage: { default: 'newtab', check: oneOf('newtab', 'url') },          // first tab of a new window
   startUrl: { default: '', check: webUrl },
   theme: { default: 'system', check: oneOf('system', 'light', 'dark') },
+  // Appearance (src/main/look.js turns these into CSS)
+  lookTheme: { default: 'default', check: oneOf('default', 'lavender', 'midnight', 'forest', 'sunset', 'mono', 'contrast') },
+  accentColor: { default: '', check: (v) => (typeof v === 'string' && (v === '' || /^#[0-9a-f]{6}$/i.test(v)) ? v.toLowerCase() : undefined) },
+  uiDensity: { default: 'normal', check: oneOf('compact', 'normal', 'roomy') },
+  uiCorners: { default: 'round', check: oneOf('round', 'square') },
+  uiFont: { default: 'system', check: oneOf('system', 'rounded', 'serif', 'mono') },
+  // Layout
+  toolbarLayout: { default: ['back', 'forward', 'reload', 'address', 'history', 'downloads', 'remote', 'menu'], check: toolbarLayout },
+  tabsPosition: { default: 'top', check: oneOf('top', 'left') },
+  // Glass (Liquid-Glass style). 'floating' (the toolbar floating over the page) is planned.
+  toolbarStyle: { default: 'solid', check: oneOf('solid', 'docked') },
+  pagesStyle: { default: 'solid', check: oneOf('solid', 'glass') },
+  // Your own CSS for Rove's toolbar and built-in pages (web pages are never touched)
+  customCss: { default: '', check: (v) => (typeof v === 'string' && v.length <= 50_000 ? v : undefined) },
+  glassBlur: { default: true, check: bool }, // off = clear glass (macOS): the desktop shows sharp, 100% = invisible
+  glassLevel: { default: 85, check: (v) => (Number.isFinite(v) && v >= 0 && v <= 100 ? Math.round(v) : undefined) }, // transparency %
+  // New Tab page
+  ntBackground: { default: 'plain', check: oneOf('plain', 'gradient', 'image') },
+  ntGradient: { default: 'rove', check: oneOf('rove', 'dusk', 'sunset', 'ocean', 'forest', 'ember') },
+  ntImage: { default: 0, check: (v) => (Number.isSafeInteger(v) && v >= 0 ? v : undefined) },  // version of the picture (0 = none)
+  ntDim: { default: 25, check: (v) => (Number.isFinite(v) && v >= 0 && v <= 70 ? Math.round(v) : undefined) },
+  ntShowSearch: { default: true, check: bool },
+  ntShowFavorites: { default: true, check: bool },
+  ntClock: { default: 'off', check: oneOf('off', 'clock', 'greeting') },
   showFavoritesBar: { default: true, check: bool },
   // Search
   searchEngine: { default: 'google', check: oneOf(...SEARCH_ENGINES) },
@@ -43,6 +71,7 @@ const SCHEMA = {
   updateCheck: { default: true, check: bool },
   // Phone remote: off = nothing listens on the network at all.
   remoteEnabled: { default: true, check: bool },
+  remoteQrAuto: { default: true, check: bool },  // QR pops up by itself while no phone is connected (only with the remote on)
 };
 
 let cache = null;
@@ -84,4 +113,7 @@ function reset(key) {
   set({ [key]: SCHEMA[key].default });
 }
 
-module.exports = { SCHEMA, load, all, get, set, reset, on: (...a) => events.on(...a), off: (...a) => events.off(...a) };
+const NEWTAB_KEYS = ['ntBackground', 'ntGradient', 'ntImage', 'ntDim', 'ntShowSearch', 'ntShowFavorites', 'ntClock'];
+const LOOK_KEYS = ['theme', 'lookTheme', 'accentColor', 'uiDensity', 'uiCorners', 'uiFont', 'tabsPosition', 'toolbarStyle', 'pagesStyle', 'glassLevel', 'glassBlur', 'customCss'];
+
+module.exports = { NEWTAB_KEYS, TOOLBAR_ITEMS, LOOK_KEYS, SCHEMA, load, all, get, set, reset, on: (...a) => events.on(...a), off: (...a) => events.off(...a) };

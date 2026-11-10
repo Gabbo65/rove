@@ -57,7 +57,7 @@ function build(hub) {
       { label: 'Actual Size', accelerator: 'CmdOrCtrl+0', click: () => zoom(0) },
       { type: 'separator' },
       { label: 'Show Favorites Bar', accelerator: 'CmdOrCtrl+Shift+B', click: () => hub.toggleFavoritesBar() },
-      { label: 'Show Remote QR Code', accelerator: 'CmdOrCtrl+Shift+Q', click: () => win()?.toggleQR() },
+      { label: 'Show Remote QR Code', accelerator: 'CmdOrCtrl+Shift+P', click: () => win()?.toggleQR() },
       { type: 'separator' },
       { label: 'Developer Tools (Page)', accelerator: 'Alt+CmdOrCtrl+I', click: () => tab()?.wc?.toggleDevTools() },
       { label: 'Developer Tools (Browser UI)', click: () => win()?.chrome.webContents.toggleDevTools() },

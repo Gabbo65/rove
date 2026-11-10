@@ -99,7 +99,7 @@ This is an early version. The core browser is solid and tested; the deep customi
 
 Control the browser from your phone over your home Wi-Fi. Nothing to install on the phone.
 
-1. Click the **remote button** in the toolbar (or press `⇧⌘Q` / `Ctrl+Shift+Q`) to show a QR code.
+1. Click the **remote button** in the toolbar (or press `⇧⌘P` / `Ctrl+Shift+P`) to show a QR code.
 2. Scan it with your phone's camera. Your phone and computer must be on the same Wi-Fi.
 3. The first time, your phone warns about the connection's certificate: the browser makes its own private certificate for your network. Accept it to continue.
 
@@ -145,7 +145,7 @@ Two modes:
 | Show / hide favorites bar | `⇧⌘B` | `Ctrl+Shift+B` |
 | History | `⌘Y` | `Ctrl+Y` |
 | Downloads | `⇧⌘J` | `Ctrl+Shift+J` |
-| Show / hide phone QR code | `⇧⌘Q` | `Ctrl+Shift+Q` |
+| Show / hide phone QR code | `⇧⌘P` | `Ctrl+Shift+P` |
 | Settings | `⌘,` | `Ctrl+,` |
 | Developer tools | `⌥⌘I` | `Ctrl+Alt+I` |
 | Quit | `⌘Q` | `Alt+F4` (Windows) · `Ctrl+Q` (Linux) |

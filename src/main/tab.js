@@ -112,8 +112,11 @@ class Tab {
   applyBackground() {
     if (!this.view) return;
     const internal = urls.isInternal(this.url);
-    const dark = nativeTheme.shouldUseDarkColors;
-    this.view.setBackgroundColor(internal ? (dark ? '#262626' : '#f7f7f8') : '#ffffff');
+    const look = require('./look');
+    const g = look.glass();
+    // Docked Glass + Pages Glass: Rove's own pages let the window's glass show through
+    const page = this.win.private ? '#231a33' : g.pagesNative ? '#00000000' : look.palette(nativeTheme.shouldUseDarkColors).page;
+    this.view.setBackgroundColor(internal ? page : '#ffffff');
   }
 
   // ---------- events ----------

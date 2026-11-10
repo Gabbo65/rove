@@ -80,6 +80,7 @@ const drag = horizontalDrag(tabsEl, {
   item: '.tab',
   group: (el) => el.classList.contains('pinned'),
   drop: (el, order) => pb.send('tab:move', { id: Number(el.dataset.id), index: order.indexOf(el) }),
+  axis: () => (document.body.classList.contains('vtabs') ? 'y' : 'x'),
 });
 
 $('newtab').onclick = () => pb.send('tab:new', {});

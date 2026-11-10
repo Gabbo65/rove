@@ -24,3 +24,25 @@
 06-remote > stars favorites
 11-suggest
 15-screens
+# Customization step 1: appearance
+20-appearance
+10-settings
+13-private
+# Customization step 2: layout (toolbar buttons, vertical tabs; drag code shared with tabs/favorites)
+21-layout
+14-tab-management
+05-find-downloads
+# QR auto-show option
+08-ui
+06-remote
+# Customization step 3: new tab page (+ new windows focus the address bar)
+22-newtab
+01-core
+12-passwords
+# QR shortcut ⇧⌘P, look.css scoped to the toolbar
+08-ui > QR
+22-newtab
+# Glass: Docked Glass toolbar + Pages Glass
+23-glass
+# Step 4: custom CSS + setup file
+24-custom

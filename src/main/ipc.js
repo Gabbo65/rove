@@ -50,6 +50,10 @@ function register(hub) {
     else if (action === 'forward') t.forward();
     else if (action === 'reload') t.reload();
     else if (action === 'stop') t.stop();
+    else if (action === 'home') { // the start page from Settings → General, else the New Tab page
+      const start = settings.get('startPage') === 'url' && settings.get('startUrl');
+      win.navigate(start || urls.NEWTAB, { typed: false });
+    }
   });
   ui('navigate', (win, { input, disposition = 'current', typed = true } = {}) =>
     win.navigate(String(input || ''), { typed, disposition }));
@@ -112,6 +116,8 @@ function register(hub) {
     newtab: {
       favorites: () => favorites.list(),
       info: (ctx) => ({ private: ctx.win.private }),
+      look: () => Object.fromEntries(settings.NEWTAB_KEYS.map((k) => [k, settings.get(k)])),
+      customize: (ctx) => hub.openInternal('settings', ctx.win, 'appearance'),
       search: (ctx, text) => { ctx.win.navigate(String(text || ''), { tab: ctx.tab, typed: true }); },
     },
     history: {

@@ -13,6 +13,7 @@ const { PRELOAD, ROOT } = require('./paths');
 const { Tab } = require('./tab');
 const urls = require('./urls');
 const closed = require('./closed');
+const look = require('./look');
 
 let seq = 0;
 
@@ -35,18 +36,21 @@ function lockUiView(wc, home) {
 // over our tab strip, in the strip's colour (updated when the theme changes).
 const IS_MAC = process.platform === 'darwin';
 function overlayColors(isPrivate) {
-  if (isPrivate) return { color: '#1a1326', symbolColor: '#e8e3f3', height: 40 };
-  return nativeTheme.shouldUseDarkColors ? { color: '#1f1f1f', symbolColor: '#e6e6e6', height: 40 } : { color: '#e9e9ec', symbolColor: '#1f1f1f', height: 40 };
+  const height = look.stripHeight();
+  if (isPrivate) return { color: '#1a1326', symbolColor: '#e8e3f3', height };
+  const p = look.palette(nativeTheme.shouldUseDarkColors);
+  return { color: p.strip, symbolColor: p.fg, height };
 }
+const trafficLights = () => ({ x: 14, y: Math.round((look.stripHeight() - 14) / 2) });
 function frameOptions(isPrivate) {
-  if (IS_MAC) return { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 13 } };
+  if (IS_MAC) return { titleBarStyle: 'hiddenInset', trafficLightPosition: trafficLights() };
   return { titleBarStyle: 'hidden', titleBarOverlay: overlayColors(isPrivate), autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon: path.join(ROOT, 'build', 'icon.png') } : {}) };
 }
 
 function themeBackground(isPrivate) {
   if (isPrivate) return '#231a33';
-  return nativeTheme.shouldUseDarkColors ? '#2c2c2c' : '#f7f7f8';
+  return look.palette(nativeTheme.shouldUseDarkColors).chrome;
 }
 
 class Win {
@@ -64,7 +68,7 @@ class Win {
     this.cursorOn = false;
     this.cursorTimer = null;
     this.fullscreenTab = null;
-    this.qrVisible = true;
+    this.qrVisible = app.qrAuto() && app.remoteStatus().clients === 0; // see Settings → Phone remote
     this.findOpen = false;
     this.uiReady = false;
     this.destroyed = false;
@@ -76,6 +80,9 @@ class Win {
       width: 1280, height: 860, minWidth: 600, minHeight: 400,
       ...frameOptions(isPrivate),
       backgroundColor: themeBackground(isPrivate), show: false,
+      visualEffectState: 'active', // glass stays glass when the window isn't focused (macOS)
+      // macOS: transparent-capable, so "clear glass" (blur off) can show the desktop sharp. Looks the same when solid.
+      ...(IS_MAC && !isPrivate ? { transparent: true } : {}),
       title: isPrivate ? 'InPrivate' : 'Rove',
     });
 
@@ -95,17 +102,13 @@ class Win {
       this.uiReady = true;
       this.sendState(true);
       this.app.onWindowReady(this);
-      if (!this.base.isVisible()) this.base.show();
+      if (!this.base.isVisible()) this.showWindow();
+      this.focusActive(); // the first "focus the address bar" was sent before this UI could hear it
     });
-    setTimeout(() => { if (!this.destroyed && !this.base.isVisible()) this.base.show(); }, 1500);
+    setTimeout(() => { if (!this.destroyed && !this.base.isVisible()) this.showWindow(); }, 1500);
     this.hud.webContents.once('did-finish-load', () => this.sendHud());
 
-    if (!IS_MAC) {
-      this.base.setMenuBarVisibility?.(false); // shortcuts still work; menu items live in the ⋯ button
-      const recolor = () => { if (!this.destroyed) try { this.base.setTitleBarOverlay(overlayColors(isPrivate)); } catch {} };
-      nativeTheme.on('updated', recolor);
-      this.base.once('closed', () => nativeTheme.removeListener('updated', recolor));
-    }
+    if (!IS_MAC) this.base.setMenuBarVisibility?.(false); // shortcuts still work; menu items live in the ⋯ button
     this.base.on('resize', () => this.layout());
     this.base.on('focus', () => this.app.onWindowFocus(this));
     this.base.on('close', () => this.onClose());
@@ -114,6 +117,37 @@ class Win {
     this.base.on('leave-full-screen', () => this.sendUI('fullscreen', false));
 
     this.layout();
+    this.glass = false;
+    this.applyLook();
+  }
+
+  // Appearance changed (or light/dark): native window parts follow the tab strip's color and height.
+  applyLook() {
+    if (this.destroyed) return;
+    try {
+      // Docked Glass: the system blurs what's behind the window; the toolbar's CSS is see-through over it.
+      const g = look.glass();
+      const glass = (g.toolbar || g.pagesNative) && !this.private;
+      const blur = glass && g.blur;
+      if (glass !== this.glass || blur !== this.blur) {
+        // 'hud': the most see-through system material (light and dark); 'under-window' looked solid
+        if (IS_MAC) this.base.setVibrancy(blur ? 'hud' : null);
+        else if (process.platform === 'win32') this.base.setBackgroundMaterial(glass ? 'acrylic' : 'none');
+        this.glass = glass;
+        this.blur = blur;
+      }
+      this.base.setBackgroundColor(glass ? '#00000000' : themeBackground(this.private));
+      if (IS_MAC) this.base.setWindowButtonPosition?.(trafficLights());
+      else this.base.setTitleBarOverlay({ ...overlayColors(this.private), ...(glass && g.toolbar ? { color: '#00000000' } : {}) });
+    } catch { /* window closing */ }
+  }
+
+  // Tests (PB_TEST) open windows without taking the focus from whoever is using the computer.
+  showWindow() {
+    if (!process.env.PB_TEST) return this.base.show();
+    // invisible, click-through, never focused: tests run while you keep using the computer
+    if (!process.env.PB_VISIBLE) { this.base.setOpacity?.(0); this.base.setIgnoreMouseEvents?.(true); }
+    this.base.showInactive();
   }
 
   // ---------- messaging ----------
