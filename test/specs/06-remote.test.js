@@ -269,4 +269,31 @@ module.exports = [
       }
     },
   },
+  {
+    name: 'plain http:// is redirected to https://; the phone page reconnects right away when you come back to it',
+    timeout: 30000,
+    async run(t) {
+      await t.fresh();
+      // a hand-typed http:// address gets a redirect, not a dropped connection
+      const r = await new Promise((res, rej) => require('http').get(`http://127.0.0.1:${remote.port()}/?k=abc`, res).on('error', rej));
+      t.assert.equal(r.statusCode, 301);
+      t.assert.match(r.headers.location, new RegExp(`^https://[\\d.]+:${remote.port()}/\\?k=abc$`));
+      const evil = await new Promise((res, rej) => require('http').get({ port: remote.port(), host: '127.0.0.1', path: '/', headers: { Host: 'evil.com' } }, res).on('error', rej));
+      t.assert.doesNotMatch(evil.headers.location, /evil/, 'never redirects to another site');
+      // a real browser following it ends up on the phone page, connected
+      const ses = session.fromPartition('phone-test');
+      ses.setCertificateVerifyProc((_req, cb) => cb(0));
+      const phone = new BrowserWindow({ show: false, width: 390, height: 844, webPreferences: { session: ses } });
+      await phone.loadURL(`http://127.0.0.1:${remote.port()}/?k=${key(t)}`);
+      const pjs = (c) => phone.webContents.executeJavaScript(c);
+      t.assert.match(phone.webContents.getURL(), /^https:/);
+      await t.until(() => pjs(`document.getElementById('status').classList.contains('on')`), { message: 'phone connected' });
+      // the socket dies while the phone sleeps (no close event, no retry) → coming back reconnects at once
+      await pjs(`ws.onclose = null; ws.close(); document.getElementById('status').classList.remove('on'); 1`);
+      await t.sleep(300);
+      await pjs(`window.dispatchEvent(new Event('pageshow')); 1`);
+      await t.until(() => pjs(`document.getElementById('status').classList.contains('on')`), { message: 'reconnected', timeout: 3000 });
+      phone.destroy();
+    },
+  },
 ];

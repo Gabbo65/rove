@@ -152,11 +152,13 @@ try {
 if (location.search) history.replaceState(null, '', location.pathname);
 const forget = () => { try { localStorage.removeItem('k'); localStorage.removeItem('d'); } catch {} };
 
-let ws, mode = 'basic';
+let ws, mode = 'basic', retry = 0;
 const $ = (id) => document.getElementById(id);
 const send = (msg) => ws && ws.readyState === 1 && ws.send(JSON.stringify(msg));
 
 function connect() {
+  clearTimeout(retry);
+  if (ws && ws.readyState <= 1) return; // already connecting / connected
   const d = device ? `&d=${encodeURIComponent(device)}` : '';
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?k=${encodeURIComponent(key || '')}${d}`);
   ws.binaryType = 'blob';
@@ -168,7 +170,7 @@ function connect() {
     if (e.code === 4029) { $('title').textContent = 'Too many tries — wait a few minutes'; return; }
     if (e.code === 4008) { $('title').textContent = 'Too many phones connected'; return; }
     $('title').textContent = e.code === 4000 ? 'Phone remote is off on the computer' : 'Reconnecting…';
-    setTimeout(connect, e.code === 4000 ? 5000 : e.code === 4002 ? 3000 : 1500);
+    retry = setTimeout(connect, e.code === 4000 ? 5000 : e.code === 4002 ? 3000 : 1500);
   };
   ws.onmessage = (e) => {
     if (typeof e.data !== 'string') return showFrame(e.data);
@@ -196,6 +198,13 @@ function sendMode() {
   send({ type: 'mode', mode: m, rtc: typeof RTCPeerConnection === 'function' });
 }
 document.addEventListener('visibilitychange', sendMode);
+// Back on the page (phone unlocked, Safari reopened, Wi-Fi back, Rove restarted): reconnect right away
+// instead of waiting for the next retry. A socket that died while the phone slept is replaced too.
+const wake = () => { if (!document.hidden && (!ws || ws.readyState > 1)) connect(); };
+document.addEventListener('visibilitychange', wake);
+window.addEventListener('pageshow', wake);
+window.addEventListener('online', wake);
+window.addEventListener('focus', wake);
 
 $('seg').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;

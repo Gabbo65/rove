@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const https = require('https');
+const net = require('net');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const QRCode = require('qrcode');
@@ -393,7 +394,8 @@ async function askToAllow({ ip, name }) {
 }
 const asking = new Set(); // addresses with a question open
 
-let server = null, wss = null, enabled = false, port = PORT;
+const sockets = new Set(); // every raw connection, so turning the remote off drops them all at once
+let server = null, front = null, wss = null, enabled = false, port = PORT;
 
 function admit(ws, device) {
   const client = { ws, mode: 'basic', id: ++clientSeq, rtc: null, device: device.id };
@@ -463,6 +465,22 @@ async function start(theHub) {
     }
   });
   server.on('error', (err) => console.error('Remote server error:', err.message));
+  // One port, two kinds of visitors: TLS goes to the HTTPS server; plain http:// (typed by hand, old bookmark)
+  // gets sent to the https:// address instead of a dropped connection ("network connection was lost").
+  front = net.createServer((sock) => {
+    sockets.add(sock);
+    sock.on('close', () => sockets.delete(sock));
+    sock.on('error', () => {});
+    sock.setTimeout(10_000, () => sock.destroy());
+    sock.once('data', (buf) => {
+      sock.setTimeout(0);
+      if (buf[0] === 0x16) { sock.pause(); sock.unshift(buf); server.emit('connection', sock); return; } // TLS handshake
+      const m = /^[A-Z]{3,7} (\/[^\s]*) HTTP\/1\.[01]\r?\n/.exec(buf.toString('latin1', 0, 4096));
+      const loc = `https://${currentIP || lanIP()}:${port}${m ? m[1] : '/'}`; // our own address only, never the Host header
+      sock.end(`HTTP/1.1 301 Moved Permanently\r\nLocation: ${loc}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n`);
+    });
+  });
+  front.on('error', (err) => console.error('Remote server error:', err.message));
   wss = new WebSocketServer({ server, path: '/ws', maxPayload: MAX_MESSAGE });
   wss.on('connection', (ws, req) => { onConnection(ws, req).catch(() => { try { ws.close(1011); } catch {} }); });
   settings.on('change', (changed) => { if ('remoteEnabled' in changed) setEnabled(changed.remoteEnabled).catch(() => {}); });
@@ -477,7 +495,7 @@ async function setEnabled(on) {
   clearInterval(addressTimer);
   if (!on) {
     for (const c of [...clients]) c.ws.close(4000, 'remote turned off');
-    await new Promise((resolve) => { server.close(() => resolve()); server.closeAllConnections?.(); setTimeout(resolve, 1000); });
+    await new Promise((resolve) => { front.close(() => resolve()); for (const x of sockets) x.destroy(); setTimeout(resolve, 1000); });
     currentIP = null; REMOTE_URL = ''; QR_DATA = '';
     broadcastStatus(true);
     return;
@@ -485,13 +503,13 @@ async function setEnabled(on) {
   const ip = lanIP();
   try { server.setSecureContext(tlsCert(ip)); } catch {}
   await new Promise((resolve, reject) => {
-    const fail = (err) => { server.off('listening', ok); enabled = false; reject(err); };
-    const ok = () => { server.off('error', fail); resolve(); };
-    server.once('error', fail);
-    server.once('listening', ok);
-    server.listen(PORT, '0.0.0.0');
+    const fail = (err) => { front.off('listening', ok); enabled = false; reject(err); };
+    const ok = () => { front.off('error', fail); resolve(); };
+    front.once('error', fail);
+    front.once('listening', ok);
+    front.listen(PORT, '0.0.0.0');
   });
-  port = server.address()?.port || PORT;
+  port = front.address()?.port || PORT;
   await setAddress(ip, port);
   // The Wi-Fi address can change while the browser runs (started offline, moved to another network…):
   // check every few seconds and, if it changed, switch the certificate, the link and the QR code.
