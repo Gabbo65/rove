@@ -46,3 +46,5 @@
 23-glass
 # Step 4: custom CSS + setup file
 24-custom
+# Hex Phase 1: core + wheel + trigger
+25-hex

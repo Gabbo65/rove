@@ -8,7 +8,7 @@ const path = require('path');
 const { UI } = require('./paths');
 
 const HOSTS = {
-  chrome: 'chrome', hud: 'hud', shared: 'shared', streamer: 'streamer',
+  chrome: 'chrome', hud: 'hud', hex: 'hex', shared: 'shared', streamer: 'streamer',
   newtab: 'pages/newtab', history: 'pages/history', settings: 'pages/settings', error: 'pages/error',
 };
 

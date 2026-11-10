@@ -107,6 +107,7 @@ function boot() {
     protocolMod.handleSession(session.defaultSession);
     ipc.register(hub);
     require('./autofill').register(hub);
+    require('./hex').setup(hub);
     menu.build(hub);
     try { await migrate.run(); } catch (err) { console.error('Import of old data failed:', err); }
     hub.setRemote(remote);

@@ -12,6 +12,7 @@ function render(settings) {
   if (document.activeElement !== $('startUrl')) $('startUrl').value = S.startUrl || '';
   for (const id of ['theme', 'uiCorners', 'uiDensity', 'uiFont', 'tabsPosition', 'ntBackground', 'ntClock', 'toolbarStyle', 'pagesStyle']) for (const b of $(id).children) b.classList.toggle('on', b.dataset.v === S[id]);
   renderNewTab();
+  if (!hexRecording) $('hex-trigger').textContent = shortcutLabel(S.hexTrigger);
   if (document.activeElement !== $('custom-css')) $('custom-css').value = S.customCss || '';
   $('glass-level-row').hidden = S.toolbarStyle !== 'docked' && S.pagesStyle !== 'glass';
   $('glass-blur-row').hidden = $('glass-level-row').hidden || !LOOK.clearSupported;
@@ -92,6 +93,46 @@ $('setup-import').onclick = async () => {
   if (r.error) return alert(r.error);
   render(r.settings);
   flash($('setup-import'), 'Imported');
+};
+// ---------- Hex Trigger recorder ----------
+const MAC = /Mac/.test(navigator.platform);
+let hexRecording = false;
+function shortcutLabel(acc = '') {
+  const map = MAC ? { CmdOrCtrl: '⌘', Ctrl: '⌃', Alt: '⌥', Shift: '⇧', Super: '⌘' } : { CmdOrCtrl: 'Ctrl', Ctrl: 'Ctrl', Alt: 'Alt', Shift: 'Shift', Super: 'Win' };
+  const parts = acc.split('+');
+  return MAC ? parts.map((p) => map[p] || p).join('') : parts.map((p) => map[p] || p).join('+');
+}
+function keyName(code) {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (/^F\d{1,2}$/.test(code)) return code;
+  return { Space: 'Space', Tab: 'Tab', Backquote: 'Backquote', Period: 'Period', Comma: 'Comma', Slash: 'Slash' }[code] || '';
+}
+function stopRecording(msg = '') {
+  hexRecording = false;
+  $('hex-trigger').classList.remove('rec');
+  $('hex-trigger').textContent = shortcutLabel(S.hexTrigger);
+  $('hex-trigger-hint').hidden = !msg;
+  $('hex-trigger-hint').textContent = msg;
+  window.removeEventListener('keydown', onRecordKey, true);
+}
+async function onRecordKey(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (e.key === 'Escape') return stopRecording();
+  const key = keyName(e.code);
+  if (!key) return; // only modifiers so far
+  const mods = [MAC ? e.metaKey && 'CmdOrCtrl' : e.ctrlKey && 'CmdOrCtrl', MAC && e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift'].filter(Boolean);
+  const acc = [...mods, key].join('+');
+  await set({ hexTrigger: acc });
+  stopRecording(S.hexTrigger === acc ? '' : 'Use a modifier (⌘, ⌃, ⌥ / Ctrl, Alt) with a letter or number, or an F-key.');
+}
+$('hex-trigger-set').onclick = () => {
+  hexRecording = true;
+  $('hex-trigger').classList.add('rec');
+  $('hex-trigger').textContent = 'Press keys…';
+  $('hex-trigger-hint').hidden = false;
+  $('hex-trigger-hint').textContent = 'Press the new shortcut. Esc cancels.';
+  window.addEventListener('keydown', onRecordKey, true);
 };
 let glassTimer = null;
 $('glassLevel').addEventListener('input', () => {

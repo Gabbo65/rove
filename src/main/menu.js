@@ -58,6 +58,7 @@ function build(hub) {
       { type: 'separator' },
       { label: 'Show Favorites Bar', accelerator: 'CmdOrCtrl+Shift+B', click: () => hub.toggleFavoritesBar() },
       { label: 'Show Remote QR Code', accelerator: 'CmdOrCtrl+Shift+P', click: () => win()?.toggleQR() },
+      { label: 'Hex', accelerator: require('./settings').get('hexTrigger'), click: () => hub.hex?.open(win()) },
       { type: 'separator' },
       { label: 'Developer Tools (Page)', accelerator: 'Alt+CmdOrCtrl+I', click: () => tab()?.wc?.toggleDevTools() },
       { label: 'Developer Tools (Browser UI)', click: () => win()?.chrome.webContents.toggleDevTools() },

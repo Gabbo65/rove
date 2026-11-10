@@ -64,6 +64,15 @@ function register(hub) {
 
   // phone QR
   ui('qr:toggle', (win) => win.toggleQR());
+  // Hex wheel window: only that window may use these; commands act on the Rove window that opened it.
+  const hexOnly = (channel, fn) => ipcMain.handle(channel, async (e, ...args) => {
+    if (!hub.hex.isWheel(e.sender)) throw new Error('not allowed');
+    return fn(...args);
+  });
+  hexOnly('hex:run', async (id) => { const win = hub.hex.getTarget(); const r = await hub.hex.run(win, id); return r; });
+  hexOnly('hex:set', (key, value) => hub.hex.set(String(key), value));
+  hexOnly('hex:close', () => hub.hex.close());
+  hexOnly('hex:recenter', () => hub.hex.recenter());
 
   // favorites
   uiInvoke('fav:add-current', (win) => hub.addFavoriteFromTab(win, win.active));

@@ -8,14 +8,14 @@ const SEND = new Set([
   'nav', 'navigate', 'find', 'find:close', 'qr:toggle',
   'fav:remove', 'fav:reorder', 'fav:open', 'history:open-page', 'downloads:action', 'settings:set', 'settings:open', 'omnibox:delete', 'save-prompt:answer', 'win:new', 'update:open',
 ]);
-const INVOKE = new Set(['fav:add-current', 'fav:update', 'history:recent', 'menu:popup', 'omnibox:local', 'omnibox:remote', 'tabs:search-data']);
+const INVOKE = new Set(['hex:run', 'hex:set', 'hex:close', 'hex:recenter', 'fav:add-current', 'fav:update', 'history:recent', 'menu:popup', 'omnibox:local', 'omnibox:remote', 'tabs:search-data']);
 const LISTEN = new Set([
   'state', 'favorites', 'downloads', 'settings', 'remote-status', 'command', 'hud:state',
-  'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt',
+  'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt', 'hex:open', 'hex:closed',
 ]);
 
 // Only our own UI pages get the bridge — never a web page, even if one ended up in a UI view.
-const OWN_UI = /^pb:\/\/(chrome|hud)\//i.test(location.href) && window.top === window;
+const OWN_UI = /^pb:\/\/(chrome|hud|hex)\//i.test(location.href) && window.top === window;
 
 // Nothing dropped on the UI may load in it (Chromium's default for a dropped link or file is to open it).
 window.addEventListener('dragover', (e) => e.preventDefault(), true);

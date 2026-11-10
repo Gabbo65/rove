@@ -15,6 +15,7 @@
     <a href="#general">General</a>
     <a href="#appearance">Appearance</a>
     <a href="#newtab">New tab page</a>
+    <a href="#hex">Hex</a>
     <a href="#search">Search &amp; address bar</a>
     <a href="#tabs">Tabs</a>
     <a href="#downloads">Downloads</a>
@@ -76,7 +77,7 @@
         <div class="actions"><input type="range" id="glassLevel" min="0" max="100" step="5"><span id="glassLevel-val" class="hint" style="width:38px;text-align:right"></span></div>
       </div>
       <div class="row" id="glass-blur-row">
-        <div><div class="label">Blur</div><div class="hint">Off = clear glass: what’s behind shows sharp, and at 100% Rove’s glass disappears completely</div></div>
+        <div><div class="label">Blur</div><div class="hint">Off = clear glass: what’s behind shows sharp, and at 100% Rove’s glass disappears completely. Applies to new windows. Experimental: popups over web pages may look see-through</div></div>
         <label class="switch"><input type="checkbox" data-setting="glassBlur"><span></span></label>
       </div>
     </div>
@@ -156,6 +157,17 @@
         <div class="label">Show favorites</div>
         <label class="switch"><input type="checkbox" data-setting="ntShowFavorites"><span></span></label>
       </div>
+    </div>
+  </section>
+
+  <section id="hex">
+    <h2>Hex</h2>
+    <div class="card">
+      <div class="row">
+        <div><div class="label">Hex Trigger</div><div class="hint">Opens the Hex wheel around your mouse: Injector, Magic, Settings, Extract</div></div>
+        <div class="actions"><span class="kbd" id="hex-trigger"></span><button class="btn" id="hex-trigger-set">Change…</button></div>
+      </div>
+      <div class="row hint" id="hex-trigger-hint" hidden></div>
     </div>
   </section>
 

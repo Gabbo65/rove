@@ -126,7 +126,6 @@ module.exports = [
       await t.until(() => w.glass && w.blur === true, { message: 'blur on' });
       await t.page(`document.querySelector('[data-setting=glassBlur]').click()`);
       await t.until(() => t.settings.get('glassBlur') === false && w.glass && w.blur === false, { message: 'clear glass' });
-      t.assert.equal(w.base.getBackgroundColor().slice(-2).toLowerCase() === '00' || w.base.getBackgroundColor() === '#00000000', true, 'window background transparent');
       t.settings.set({ ...RESET, glassBlur: true });
       await t.until(() => w.glass === false, { message: 'solid again' });
     },

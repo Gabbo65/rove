@@ -142,6 +142,7 @@ settings.on('change', (changed, all) => {
   hub.toPages('settings', 'settings', all);
   if ('theme' in changed) nativeTheme.themeSource = all.theme;
   if (settings.LOOK_KEYS.some((k) => k in changed)) hub.lookChanged();
+  if ('hexTrigger' in changed) require('./menu').build(hub); // new Hex Trigger shortcut
   if (settings.NEWTAB_KEYS.some((k) => k in changed)) {
     const look = Object.fromEntries(settings.NEWTAB_KEYS.map((k) => [k, all[k]]));
     hub.toPages('newtab', 'look', look);

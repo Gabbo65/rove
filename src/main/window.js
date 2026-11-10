@@ -81,8 +81,9 @@ class Win {
       ...frameOptions(isPrivate),
       backgroundColor: themeBackground(isPrivate), show: false,
       visualEffectState: 'active', // glass stays glass when the window isn't focused (macOS)
-      // macOS: transparent-capable, so "clear glass" (blur off) can show the desktop sharp. Looks the same when solid.
-      ...(IS_MAC && !isPrivate ? { transparent: true } : {}),
+      // macOS "clear glass" (Blur off) needs a transparent window. Only then: a transparent window lets web pages
+      // draw over Rove's popups (Hex wheel, history…), so normal windows never use it. Applies to new windows.
+      ...(IS_MAC && !isPrivate && require('./settings').get('glassBlur') === false ? { transparent: true } : {}),
       title: isPrivate ? 'InPrivate' : 'Rove',
     });
 
@@ -102,10 +103,10 @@ class Win {
       this.uiReady = true;
       this.sendState(true);
       this.app.onWindowReady(this);
-      if (!this.base.isVisible()) this.showWindow();
+      if (!this.base.isVisible()) this.base.show();
       this.focusActive(); // the first "focus the address bar" was sent before this UI could hear it
     });
-    setTimeout(() => { if (!this.destroyed && !this.base.isVisible()) this.showWindow(); }, 1500);
+    setTimeout(() => { if (!this.destroyed && !this.base.isVisible()) this.base.show(); }, 1500);
     this.hud.webContents.once('did-finish-load', () => this.sendHud());
 
     if (!IS_MAC) this.base.setMenuBarVisibility?.(false); // shortcuts still work; menu items live in the ⋯ button
@@ -140,14 +141,6 @@ class Win {
       if (IS_MAC) this.base.setWindowButtonPosition?.(trafficLights());
       else this.base.setTitleBarOverlay({ ...overlayColors(this.private), ...(glass && g.toolbar ? { color: '#00000000' } : {}) });
     } catch { /* window closing */ }
-  }
-
-  // Tests (PB_TEST) open windows without taking the focus from whoever is using the computer.
-  showWindow() {
-    if (!process.env.PB_TEST) return this.base.show();
-    // invisible, click-through, never focused: tests run while you keep using the computer
-    if (!process.env.PB_VISIBLE) { this.base.setOpacity?.(0); this.base.setIgnoreMouseEvents?.(true); }
-    this.base.showInactive();
   }
 
   // ---------- messaging ----------
@@ -297,7 +290,7 @@ class Win {
 
   focusActive() {
     const tab = this.active;
-    if (!tab || this.overlay) return;
+    if (!tab || this.overlay || this.app.hex?.wheelOpen()) return; // never steal focus from the open Hex wheel
     if (urls.isNewTab(tab.url)) { this.chrome.webContents.focus(); this.sendUI('command', { name: 'focus-url' }); }
     else tab.focus();
   }
@@ -487,4 +480,4 @@ class Win {
   }
 }
 
-module.exports = { Win, themeBackground };
+module.exports = { Win, themeBackground, lockUiView, UI_PREFS };

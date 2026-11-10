@@ -97,3 +97,5 @@ button.icon:hover { background: var(--hover); }
 .seg button:disabled { opacity: .45; }
 #glassLevel { width: 180px; accent-color: var(--accent); }
 .field.code { height: 160px; padding: 10px; font: 12px/1.5 ui-monospace, Menlo, monospace; resize: vertical; }
+.kbd { font: 600 12px ui-monospace, Menlo, monospace; padding: 5px 10px; border-radius: 6px; background: var(--hover); min-width: 48px; text-align: center; }
+.kbd.rec { box-shadow: inset 0 0 0 2px var(--accent); }
