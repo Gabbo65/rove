@@ -51,8 +51,9 @@ module.exports = [
         await t.until(async () => (await t.ui(`document.getElementById('update-btn').title`)).includes('99.0.0'), { message: 'toolbar shows the new version' });
       } finally {
         delete process.env.PB_UPDATE_MODE;
-        delete process.env.PB_UPDATE_URL;
+        process.env.PB_UPDATE_URL = t.url('/npm-latest?v=' + process.versions.electron); // back to "up to date": no update button left for later tests
         await updates.check().catch(() => {});
+        delete process.env.PB_UPDATE_URL;
       }
     },
   },

@@ -75,8 +75,8 @@ module.exports = [
       await t.go(t.url('/p1'));
       const ww = () => t.hub.hex.wheelWindow();
       const wjs = (code) => ww().webContents.executeJavaScript(code);
+      t.hub.hex._testNoMouse(true); // before it shows: the real mouse must never reach the wheel
       t.hub.hex.close(); t.hub.hex.open(w);
-      ww().setIgnoreMouseEvents(true); // the real mouse would interfere
       await t.until(async () => (await wjs(`!document.getElementById('hex').hidden`)), { message: 'open' });
       const labels = () => wjs(`[...document.querySelectorAll('#hex .hx-sector')].map((g) => g.getAttribute('aria-label')).join()`);
       const click = (l) => wjs(`document.querySelector('#hex .hx-sector[aria-label="${l}"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); 1`);

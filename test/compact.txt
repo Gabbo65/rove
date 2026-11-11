@@ -5,6 +5,3 @@
 # One pick per line:
 #   02-tabs                      → every test in that spec file
 #   02-tabs > drag a tab         → only tests in that file whose name contains "drag a tab"
-
-# Phone remote: http → https redirect, instant reconnect (+ the existing remote tests: same server)
-06-remote

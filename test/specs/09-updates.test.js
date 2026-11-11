@@ -32,6 +32,8 @@ module.exports = [
       const s = await updates.check();
       t.assert.ok(s.error, 'error recorded');
       t.assert.equal(s.latest, `${major + 3}.0.0`, 'last known version kept');
+      process.env.PB_UPDATE_URL = t.url('/npm-latest?v=' + cur); // leave it "up to date" so no update button leaks into later tests
+      await updates.check();
       delete process.env.PB_UPDATE_URL;
     },
   },

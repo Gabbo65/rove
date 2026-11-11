@@ -8,7 +8,7 @@ const hexState = (t) => wjs(t, `(() => { const r = document.getElementById('hex'
   back: !!r.querySelector('.hx-hub.back'), caption: r.querySelector('.hx-caption')?.textContent || '',
   box: r.querySelector('.hx-wheel').getBoundingClientRect().toJSON(), vw: innerWidth, vh: innerHeight }; })()`);
 const key = (t, k, extra = '') => wjs(t, `document.getElementById('hex').dispatchEvent(new KeyboardEvent('keydown', { key: '${k}', bubbles: true, cancelable: true ${extra} }))`);
-const move = (t, x, y) => wjs(t, `document.dispatchEvent(new MouseEvent('mousemove', { clientX: ${x}, clientY: ${y}, bubbles: true }))`);
+const move = (t, x, y) => wjs(t, `document.dispatchEvent(new MouseEvent('mousemove', { clientX: ${x}, clientY: ${y}, screenX: ${x}, screenY: ${y}, bubbles: true }))`);
 
 module.exports = [
   {
@@ -16,9 +16,8 @@ module.exports = [
     async run(t) {
       t.settings.set({ hexTrigger: 'Alt+H' });
       const w = await t.fresh();
-      t.hub.hex.close();
-      t.hub.hex.open(w);
-      t.hub.hex.wheelWindow().setIgnoreMouseEvents(true); // tests drive it; the real mouse would interfere
+      t.hub.hex._testNoMouse(true); // before it shows: the real mouse must never reach the wheel
+      t.hub.hex.close(); t.hub.hex.open(w);
       await t.until(async () => (await hexState(t)).open, { message: 'wheel open' });
       await t.sleep(250); // open animation
       let s = await hexState(t);
@@ -29,6 +28,9 @@ module.exports = [
       t.assert.ok(t.hub.hex.wheelWindow().isVisible(), 'wheel window visible');
       if (process.platform === 'darwin') t.assert.ok(require('electron').app.dock.isVisible(), 'Rove keeps its Dock icon');
       const c = { x: s.box.left + s.box.width / 2, y: s.box.top + s.box.height / 2 };
+      // the mouse resting over a family when the wheel opens (pushed in from a screen edge) doesn't enter it
+      await move(t, c.x - 40, c.y + 40);
+      t.assert.deepEqual((await hexState(t)).sectors, ['Injector', 'Magic', 'Settings', 'Extract'], 'resting mouse enters nothing');
       await move(t, c.x + 5, c.y + 5);
       t.assert.equal((await hexState(t)).back, false, 'dead zone: nothing');
       await move(t, c.x - 40, c.y + 40); // toward Settings (bottom-left): the wheel becomes Settings
@@ -64,9 +66,8 @@ module.exports = [
       t.assert.match((await t.hub.hex.run(w, 'hex.color')).error, /Not a command/);
       t.assert.match(t.hub.hex.set('downloadDir', '/evil').error, /Not allowed/);
       t.assert.throws(() => t.hub.hex.register({ id: 'x', family: 'nope', run() {} }), /bad item/);
-      t.hub.hex.close();
-      t.hub.hex.open(w);
-      t.hub.hex.wheelWindow().setIgnoreMouseEvents(true); // tests drive it; the real mouse would interfere
+      t.hub.hex._testNoMouse(true); // before it shows: the real mouse must never reach the wheel
+      t.hub.hex.close(); t.hub.hex.open(w);
       await t.until(async () => (await hexState(t)).open, { message: 'open' });
       await key(t, '3');             // Settings ring (Trigger selected)
       await key(t, 'ArrowLeft');     // Color (Trigger → ← wraps to the last: Color)
@@ -128,9 +129,8 @@ module.exports = [
     async run(t) {
       t.settings.set({ hexMode: 'bumpy' });
       const w = await t.fresh();
-      t.hub.hex.close();
-      t.hub.hex.open(w);
-      t.hub.hex.wheelWindow().setIgnoreMouseEvents(true); // tests drive it; the real mouse would interfere
+      t.hub.hex._testNoMouse(true); // before it shows: the real mouse must never reach the wheel
+      t.hub.hex.close(); t.hub.hex.open(w);
       await t.until(async () => (await hexState(t)).open, { message: 'open' });
       const hoverSector = (label) => wjs(t, `document.querySelector('#hex .hx-sector[aria-label="${label}"]').dispatchEvent(new MouseEvent('mouseenter')); 1`);
       await hoverSector('Settings');

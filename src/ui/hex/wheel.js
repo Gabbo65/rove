@@ -184,8 +184,13 @@ function label(acc) {
 function back() { path.pop(); draw(); root.focus({ preventScroll: true }); pb.invoke('hex:recenter').catch(() => {}); }
 
 // Moving away from the centre: on the root wheel it enters that family; deeper it only highlights.
+// Only real movement counts: the first event after opening just marks where the mouse is. (Near a screen edge
+// the wheel is pushed inward, so the resting mouse may sit over a family — it must not enter it by itself.)
+let rest = null;
 document.addEventListener('mousemove', (e) => {
   if (state !== 'ring') return;
+  if (!rest) { rest = { x: e.screenX, y: e.screenY, armed: false }; return; }
+  if (!rest.armed) { if (Math.hypot(e.screenX - rest.x, e.screenY - rest.y) < 8) return; rest.armed = true; }
   const r = root.getBoundingClientRect();
   const dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
   const d = Math.hypot(dx, dy);
@@ -201,6 +206,7 @@ function open({ families: fams, color, mode: m }) {
   root.dataset.color = color || 'violet';
   mode = m === 'bumpy' ? 'bumpy' : 'smooth';
   path = [];
+  rest = null;
   root.hidden = false;
   draw();
   root.focus({ preventScroll: true });

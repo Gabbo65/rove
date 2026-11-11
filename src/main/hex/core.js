@@ -81,6 +81,7 @@ const scale = () => SIZES[require('../settings').get('hexSize')] || 1;
 let wheel = null;   // BrowserWindow
 let target = null;  // the Rove window Hex acts on
 let openedAt = 0;
+let testNoMouse = false; // tests drive the wheel themselves; the real mouse must never reach it
 
 function wheelWindow() {
   if (wheel && !wheel.isDestroyed()) return wheel;
@@ -90,6 +91,7 @@ function wheelWindow() {
     movable: false, minimizable: false, maximizable: false, fullscreenable: false, skipTaskbar: true, hasShadow: false,
     alwaysOnTop: true, backgroundColor: '#00000000', webPreferences: UI_PREFS });
   wheel.setAlwaysOnTop(true, 'pop-up-menu');
+  if (testNoMouse) wheel.setIgnoreMouseEvents(true);
   // skipTransformProcessType: without it macOS turns Rove into a Dock-less helper app
   wheel.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   const home = 'pb://hex/index.html';
@@ -148,4 +150,5 @@ function set(key, value) {
   return settings.get(key) === value ? { ok: true, families: list() } : { error: 'Use a modifier (⌘ ⌃ ⌥ / Ctrl Alt) with a letter or number, or an F-key' };
 }
 
-module.exports = { FAMILIES, register, provide, list, run, open, close, recenter, set, isWheel, getTarget, wheelOpen, wheelWindow: () => wheel, _items: items };
+module.exports = { FAMILIES, register, provide, list, run, open, close, recenter, set, isWheel, getTarget, wheelOpen, wheelWindow: () => wheel, _items: items,
+  _testNoMouse(on) { testNoMouse = !!on; if (wheel && !wheel.isDestroyed()) wheel.setIgnoreMouseEvents(!!on); } };
