@@ -2,14 +2,14 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 const SEND = new Set([
-  'ui:content-rect', 'ui:overlay', 'ui:focus-page', 'hud:size', 'hud:toast-close',
+  'ui:content-rect', 'ui:overlay', 'ui:focus-page', 'hex:cinema', 'hud:size', 'hud:toast-close',
   'tab:new', 'tab:activate', 'tab:close', 'tab:close-others', 'tab:close-right', 'tab:move', 'tab:pin',
   'tab:sleep', 'tab:duplicate', 'tab:reload', 'tab:reopen', 'tab:reopen-action',
   'nav', 'navigate', 'find', 'find:close', 'qr:toggle',
   'fav:remove', 'fav:reorder', 'fav:open', 'history:open-page', 'downloads:action', 'settings:set', 'settings:open', 'omnibox:delete', 'save-prompt:answer', 'win:new', 'update:open',
 ]);
 const INVOKE = new Set(['hex:run', 'hex:set', 'hex:close', 'hex:recenter',
-  'hexs:list', 'hexs:save', 'hexs:delete', 'hexs:dup', 'hexs:fav', 'hexs:pin', 'hexs:target', 'hexs:run', 'fav:add-current', 'fav:update', 'history:recent', 'menu:popup', 'omnibox:local', 'omnibox:remote', 'tabs:search-data']);
+  'hexs:list', 'hexs:save', 'hexs:delete', 'hexs:dup', 'hexs:fav', 'hexs:pin', 'hexs:target', 'hexs:run', 'cin:state', 'cin:cmd', 'fav:add-current', 'fav:update', 'history:recent', 'menu:popup', 'omnibox:local', 'omnibox:remote', 'tabs:search-data']);
 const LISTEN = new Set([
   'state', 'favorites', 'downloads', 'settings', 'remote-status', 'command', 'hud:state',
   'qr-visible', 'fullscreen', 'page-fullscreen', 'update', 'save-prompt', 'hex:open', 'hex:closed', 'hexs:changed',

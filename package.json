@@ -18,12 +18,13 @@
     "dist:linux": "electron-builder --linux --publish never"
   },
   "devDependencies": {
+    "@electron/fuses": "^1.8.0",
     "@electron/packager": "^20.3.0",
-    "electron": "^45.2.3",
-    "electron-builder": "^26.18.0",
-    "@electron/fuses": "^1.8.0"
+    "electron": "^45.3.0",
+    "electron-builder": "^26.18.0"
   },
   "dependencies": {
+    "@ghostery/adblocker-electron": "2.20.3",
     "node-forge": "1.4.3",
     "qrcode": "^1.5.4",
     "ws": "^8.22.1"

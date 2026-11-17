@@ -2,7 +2,28 @@
 // • Built-in pages (pb://newtab, history, settings, error) get the `pb` API. Web pages get nothing.
 // • Web pages get password + form autofill: a chooser appears when you click a login/address field;
 //   passwords are only requested after a real (trusted) click on an account.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
+
+// Popups like Chrome: a page may open a new tab / window only during your click or key press, one per press.
+// (Electron leaves this out; without it pages and ads open popups whenever they like, even in endless loops.)
+// Runs in the page's own world, before its scripts: window.open and script-made link clicks need a real gesture.
+if (/^(https?|file):/i.test(location.href) || location.href === 'about:blank') {
+  webFrame.executeJavaScript(`(() => {
+    const ua = navigator.userActivation;
+    if (!ua) return;
+    const open = window.open;
+    try { Object.defineProperty(window, 'open', { configurable: true, writable: true,
+      value: function (...a) { return ua.isActive ? open.apply(this, a) : null; } }); } catch {}
+    const away = (a) => { const t = String((a && a.target) || '').toLowerCase(); return !!t && !['_self', '_parent', '_top'].includes(t); };
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { if (away(this) && !ua.isActive) return; return click.call(this); };
+    const dispatch = EventTarget.prototype.dispatchEvent;
+    EventTarget.prototype.dispatchEvent = function (e) {
+      if (e && e.type === 'click' && !e.isTrusted && this instanceof HTMLAnchorElement && away(this) && !ua.isActive) return false;
+      return dispatch.call(this, e);
+    };
+  })()`).catch(() => {});
+}
 
 const INTERNAL = /^pb:\/\/(newtab|history|settings|error)(\/|$)/i;
 

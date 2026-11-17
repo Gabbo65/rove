@@ -26,6 +26,7 @@ function register(hub) {
   ui('hud:size', (win, size) => win.setHudSize(size));
   ui('hud:toast-close', (win) => { win.toast = null; win.sendHud(); });
   ui('ui:focus-page', (win) => win.focusActive());
+  ui('hex:cinema', (win, action) => { require('./hex/cinema').fromRove(win, String(action)).catch(() => {}); });
 
   // tabs
   ui('tab:new', (win, o = {}) => win.newTab(o.url ? urls.fromInput(o.url) : undefined, { background: !!o.background, index: o.index }));

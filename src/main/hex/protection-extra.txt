@@ -1,0 +1,5 @@
+! Rove's own extra rules for Hex Protection, added on top of the standard lists.
+! Ad networks that lay an invisible full-page layer over video players ("zone" tags) — every click there opens an ad.
+||llvpn.com^
+! …they rotate domains, but their loader keeps its name: block it on streaming sites under any domain ending
+/tag.min.js$script,third-party,domain=streaming-community.*|streamingcommunity.*

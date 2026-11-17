@@ -156,4 +156,26 @@ module.exports = [
       t.assert.equal(w.tabs.map((y) => y.title).join('|'), 'Page Two|Page Three|Page One', 'no reorder on click');
     },
   },
+  {
+    name: 'drag a tab: a missed mouse release (let go over the page / another window) never leaves the tab stuck lifted over its neighbours',
+    async run(t) {
+      const w = await t.fresh();
+      await t.go(t.url('/p1'));
+      const b = w.newTab(t.url('/p2')); await t.loaded(b);
+      await t.until(async () => (await t.ui(`document.querySelectorAll('.tab').length`)) === 2, { message: 'ui tabs' });
+      const stuck = () => t.ui(`[...document.querySelectorAll('.tab')].some((e) => e.classList.contains('hdragging') || e.style.transform)`);
+      // start a drag with real pointer events in the toolbar, then the release goes elsewhere (we never send it)
+      const start = async () => {
+        const r = await t.ui(`(() => { const b = document.querySelectorAll('.tab')[0].getBoundingClientRect(); return { x: Math.round(b.left + 30), y: Math.round(b.top + 15) }; })()`);
+        w.chrome.webContents.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+        for (let i = 1; i <= 4; i++) { w.chrome.webContents.sendInputEvent({ type: 'mouseMove', x: r.x + i * 10, y: r.y, modifiers: ['leftButtonDown'] }); await t.sleep(30); }
+        await t.until(stuck, { message: 'dragging' });
+      };
+      // the mouse comes back over the toolbar with the button already up
+      await start();
+      w.chrome.webContents.sendInputEvent({ type: 'mouseMove', x: 300, y: 20 });
+      await t.until(async () => !(await stuck()), { message: 'unstuck when the mouse returns' });
+      w.chrome.webContents.sendInputEvent({ type: 'mouseUp', x: 300, y: 20, button: 'left', clickCount: 1 });
+    },
+  },
 ];

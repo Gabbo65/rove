@@ -1,7 +1,9 @@
-# Compact test list — run with:  npm run test:compact
-# ONLY the tests that prove the feature being worked on right now. Replace this list for each new feature.
-# Every other test lives in the full suite (npm test), which runs before build + install.
-#
-# One pick per line:
-#   02-tabs                      → every test in that spec file
-#   02-tabs > drag a tab         → only tests in that file whose name contains "drag a tab"
+
+# Popups like Chrome (real popup windows, need a click, flood guard) + tab drag never stuck + glass ghosting
+23-glass
+29-popups
+02-tabs
+03-favorites > drag a favorite
+21-layout
+19-security
+28-protection

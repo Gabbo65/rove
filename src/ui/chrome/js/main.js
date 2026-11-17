@@ -27,6 +27,7 @@ pb.on('state', (s) => {
   tabstrip.render(s);
   const active = s.tabs.find((t) => t.active) || null;
   showTab(active);
+  $('cin-away').hidden = !active?.cinema;
   $('star').classList.toggle('on', !!active && favbar.isFavorite(active.url));
   document.title = active ? active.title : 'Rove';
 });
@@ -92,3 +93,9 @@ pb.on('command', ({ name, id, added }) => {
 });
 
 reportRect();
+
+// Hex Cinema placeholder (the tab is playing in the Cinema window)
+$('ca-back').onclick = () => pb.send('hex:cinema', 'back');
+$('ca-dup').onclick = () => pb.send('hex:cinema', 'duplicate');
+$('ca-show').onclick = () => pb.send('hex:cinema', 'show');
+

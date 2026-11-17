@@ -62,6 +62,8 @@ const hub = {
   prepareSession(ses, { isPrivate }) {
     protocolMod.handleSession(ses);
     permissions.attach(ses);
+    require('./hex/protection').attach(ses); // ads, trackers, ad popups
+    require('./hex/cinema').attach(ses);     // Cinema also finds videos inside embedded players
     downloads.attachSession(ses, { isPrivate });
     hub.onSessionPrepared?.(ses, { isPrivate });
   },

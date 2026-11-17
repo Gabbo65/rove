@@ -40,7 +40,7 @@ export function horizontalDrag(container, { item, group = () => 0, drop, axis = 
   });
 
   const finish = (e) => {
-    if (!drag || (e && e.pointerId !== drag.pointerId)) return;
+    if (!drag || (e && e.pointerId != null && e.pointerId !== drag.pointerId)) return;
     const d = drag;
     drag = null;
     if (!d.started) return;
@@ -55,6 +55,17 @@ export function horizontalDrag(container, { item, group = () => 0, drop, axis = 
   };
   document.addEventListener('pointerup', finish);
   document.addEventListener('pointercancel', finish);
+  // Never leave an item stuck lifted over its neighbours (shadow, see-through, shifted) when the release is missed:
+  // the mouse let go over the page or another window, the window was hidden, or the press ended without us hearing
+  // it. (Not on blur: pressing a tab focuses its page a moment later, mid-press.) Any of these ends the drag and puts the item back in place.
+  const abort = () => { if (drag?.started) finish(); else drag = null; };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) abort(); });
+  document.addEventListener('pointerdown', (e) => { if (drag?.started && e.pointerId !== drag.pointerId) finish(); }, true);
+  document.addEventListener('mousemove', (e) => { if (drag?.started && !(e.buttons & 1)) finish(); }, true);
+  container.addEventListener('lostpointercapture', () => {
+    // moving the item in the row drops the capture on purpose (taken back right away); anything else ends the drag
+    if (drag?.started && !drag.moving) setTimeout(() => { if (drag?.started && !drag.el.hasPointerCapture?.(drag.pointerId)) finish(); }, 0);
+  });
   // No "end on blur": clicking a tab activates it and focuses the page, which blurs this view mid-press.
   // Pages' images / links must never start the browser's own drag-and-drop instead of ours.
   container.addEventListener('dragstart', (e) => { if (e.target.closest?.(item) || e.target.parentElement?.closest(item)) e.preventDefault(); });
@@ -75,6 +86,7 @@ export function horizontalDrag(container, { item, group = () => 0, drop, axis = 
 
     // Make room: swap with a neighbour once the item's leading edge crosses that neighbour's middle
     // (edges, not centres, so a wide item can still pass a narrow one at the end of the row).
+    drag.moving = true;
     for (const other of peers) {
       if (other === el) continue;
       const r = other.getBoundingClientRect();
@@ -85,6 +97,7 @@ export function horizontalDrag(container, { item, group = () => 0, drop, axis = 
     }
     // Moving the element drops the mouse capture; take it back so we keep following outside the window.
     try { if (!el.hasPointerCapture(drag.pointerId)) el.setPointerCapture(drag.pointerId); } catch {}
+    drag.moving = false;
     // Draw it exactly under the mouse (horizontally only).
     const natural = el.getBoundingClientRect()[lo];
     el.style.transform = `${t}(${left - natural}px)`;

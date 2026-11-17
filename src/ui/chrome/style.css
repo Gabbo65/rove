@@ -293,3 +293,22 @@ body.vtabs.fullscreen #toolbar { padding-left: 8px; }
 .os-win32 body.vtabs #toolbar { padding-left: 8px; padding-right: 146px; }
 .os-linux body.vtabs #toolbar { padding-left: 8px; padding-right: 110px; }
 body.vtabs #ts-panel { top: 48px; }
+
+/* A tab extracted into Hex Cinema: its page lives in the Cinema window, this fills the empty spot. */
+#cin-away { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--fg);
+  background: radial-gradient(90% 80% at 50% 30%, color-mix(in srgb, #a78bfa 16%, var(--chrome)), var(--chrome)); }
+#cin-away[hidden] { display: none; }
+.ca-box { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 24px; }
+.ca-ic { width: 52px; height: 52px; fill: none; stroke: #e879f9; stroke-width: 1.5; stroke-linejoin: round; filter: drop-shadow(0 0 10px rgba(232, 121, 249, .5)); }
+.ca-ic path { fill: #e879f9; }
+.ca-t { font-size: 18px; font-weight: 700; }
+.ca-s { opacity: .65; font-size: 13px; }
+.ca-btns { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+.ca-b { border: 1px solid var(--border); background: var(--hover); color: inherit; border-radius: 9px; padding: 8px 14px; font: inherit; font-size: 13px; }
+.ca-b:hover { background: var(--press); }
+.ca-b.go { background: linear-gradient(135deg, #a78bfa, #e879f9); color: #160f22; border: none; font-weight: 700; }
+
+
+/* development: which test build is running (bumped with every change while testing) */
+#test-version { align-self: center; flex: none; margin: 0 4px; padding: 2px 7px; border-radius: 6px; font: 600 10px ui-monospace, Menlo, monospace;
+  color: #fff; background: #e11d48; white-space: nowrap; pointer-events: none; }

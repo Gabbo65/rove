@@ -1,0 +1,4 @@
+! Test list for Hex Protection (the real lists download in the app)
+/ad-banner.js
+/ad-popup
+##.ad-box

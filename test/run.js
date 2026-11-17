@@ -9,6 +9,7 @@ const os = require('os');
 const assert = require('assert/strict');
 
 process.env.PB_TEST = '1';
+process.env.PB_ADBLOCK_LIST = require('path').join(__dirname, 'fixtures', 'adblock.txt'); // Protection: a tiny local list, never the internet
 process.env.PB_PORT = '0'; // random port for the phone server: never clashes with your running browser
 
 const filter = (process.argv.slice(2).find((a) => !a.startsWith('-') && !a.endsWith('.js') && a !== '.') || '').toLowerCase();

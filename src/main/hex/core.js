@@ -7,7 +7,7 @@ const { screen } = require('electron');
 const FAMILIES = [
   { id: 'injector', name: 'Injector', hint: 'Your scripts', empty: '' },
   { id: 'magic', name: 'Magic', hint: 'Tools',
-    empty: 'Tools like Cinema, Scanner, Reader and Protection arrive in the next Hex updates.' },
+    empty: '' },
   { id: 'options', name: 'Settings', hint: 'Hex options', empty: '' },
   { id: 'extract', name: 'Extract', hint: 'Hex window',
     empty: 'The detached Hex window comes in a later Hex update.' },
