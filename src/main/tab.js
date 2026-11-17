@@ -23,7 +23,7 @@ async function iconExists(ses, url) {
 }
 
 class Tab {
-  constructor(win, { url = urls.NEWTAB, pinned = false, asleep = false, title = '', favicon = null, navState = null } = {}) {
+  constructor(win, { url = urls.NEWTAB, pinned = false, asleep = false, title = '', favicon = null, navState = null, adopt = null } = {}) {
     this.id = ++seq;
     this.win = win;
     this.url = url;
@@ -39,8 +39,8 @@ class Tab {
     this.crashes = [];
     this.navState = navState;
     this.view = null;
-    if (asleep) this.asleep = true;
-    else this.createView();
+    if (asleep && !adopt) this.asleep = true;
+    else this.createView(adopt);
   }
 
   static fromWebContents(wc) { return wc ? byWebContents.get(wc.id) || null : null; }
@@ -48,8 +48,10 @@ class Tab {
   get wc() { return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null; }
 
   // ---------- view lifecycle ----------
-  createView() {
-    const view = new WebContentsView({
+  // `adopt`: a page's window.open() — the new page already exists (Chromium made it, linked to its opener):
+  // this tab just shows it, so the opener gets a real window back and can fill it in.
+  createView(adopt = null) {
+    const view = adopt ? new WebContentsView({ webContents: adopt.webContents, webPreferences: adopt.webPreferences }) : new WebContentsView({
       webPreferences: {
         session: this.win.session,
         preload: PRELOAD.tab,
@@ -67,6 +69,7 @@ class Tab {
     byWebContents.set(wc.id, this);
     this.applyBackground();
     this.wire(wc);
+    if (adopt) { this.navState = null; return; } // its opener is loading it already
     const nav = this.navState;
     this.navState = null;
     if (nav?.entries?.length) {
@@ -92,7 +95,7 @@ class Tab {
   // Free the page's memory; keep everything needed to bring it back.
   sleep() {
     const wc = this.wc;
-    if (!wc || this.asleep || this === this.win.active || this.audible) return false;
+    if (!wc || this.asleep || this === this.win.active || this.audible || this.cinema) return false;
     const h = wc.navigationHistory;
     this.navState = { index: h.getActiveIndex(), entries: h.getAllEntries().map(({ url, title }) => ({ url, title })) };
     this.loading = false;
@@ -194,7 +197,7 @@ class Tab {
     wc.on('audio-state-changed', (e) => { this.audible = !!e.audible; changed(); });
     wc.on('found-in-page', (_e, result) => this.win.onFindResult(this, result));
     wc.on('context-menu', (_e, params) => this.contextMenu(params));
-    wc.on('enter-html-full-screen', () => this.win.setPageFullscreen(this, true));
+    wc.on('enter-html-full-screen', () => { if (!this.cinema) this.win.setPageFullscreen(this, true); }); // in Cinema it already fills its window
     wc.on('leave-html-full-screen', () => this.win.setPageFullscreen(this, false));
     wc.on('focus', () => this.win.onTabFocus(this));
 
@@ -205,6 +208,12 @@ class Tab {
     };
     wc.on('will-navigate', guard);
     wc.on('will-redirect', guard);
+    // Hex Protection: an embedded player may not replace your page with an ad site
+    wc.on('will-navigate', (e) => {
+      if (!require('./hex/protection').blocksTopNav(e, wc)) return;
+      e.preventDefault();
+      this.win.showToast?.('Blocked an ad redirect', 2500);
+    });
 
     // Web Bluetooth: Electron's default is to silently pick the FIRST nearby device for the page.
     // We have no device chooser yet, so refuse instead.
@@ -213,12 +222,23 @@ class Tab {
     // window.open / target=_blank: real popups (OAuth logins etc.) get a small window; links get a tab.
     wc.setWindowOpenHandler(({ url, disposition }) => {
       if (/^pb:/i.test(url)) return { action: 'deny' };
+      if (require('./hex/protection').blocksPopup(url, wc.getURL(), wc)) { this.win.showToast?.('Blocked an ad popup', 2500); return { action: 'deny' }; }
+      // a page opening popups over and over (ad loops, broken players): stop after a few
+      const now = Date.now();
+      this.popupTimes = (this.popupTimes || []).filter((x) => now - x < 3000);
+      if (this.popupTimes.length >= 3) {
+        if (!this.popupFloodToast || now - this.popupFloodToast > 5000) { this.popupFloodToast = now; this.win.showToast?.('Blocked a flood of popups from this page', 3000); }
+        return { action: 'deny' };
+      }
+      this.popupTimes.push(now);
       if (disposition === 'new-window') {
         return { action: 'allow', overrideBrowserWindowOptions: { width: 520, height: 680, autoHideMenuBar: true,
           webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } } };
       }
-      this.win.newTab(url, { background: disposition === 'background-tab', opener: this });
-      return { action: 'deny' };
+      // A new tab that is the page's real popup window (window.open gets it back, like in Chrome).
+      // Before, Rove opened its own tab and told the page "blocked": pages retried forever, leaving empty about:blank tabs.
+      const background = disposition === 'background-tab';
+      return { action: 'allow', createWindow: (options) => this.win.newTab(url, { background, opener: this, adopt: options }).view.webContents };
     });
   }
 
@@ -256,7 +276,7 @@ class Tab {
     if (hard) this.wc?.reloadIgnoringCache(); else this.wc?.reload();
   }
   stop() { this.wc?.stop(); }
-  focus() { this.wc?.focus(); }
+  focus() { if (!this.cinema) this.wc?.focus(); } // a tab in Cinema lives in that window: focusing it would pull Cinema forward
 
   setFavicon(icon) {
     this.favicon = icon;
@@ -303,6 +323,7 @@ class Tab {
       loading: this.loading,
       pinned: this.pinned,
       asleep: this.asleep,
+      cinema: !!this.cinema,
       audible: this.audible,
       canBack: this.canGoBack(),
       canForward: this.canGoForward(),

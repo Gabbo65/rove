@@ -28,6 +28,9 @@ const ICONS = {
   'lang-js': '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/>',
   'lang-css': '<path d="M7 4c-2 0-2 2-2 4s-1 4-2 4c1 0 2 2 2 4s0 4 2 4M17 4c2 0 2 2 2 4s1 4 2 4c-1 0-2 2-2 4s0 4-2 4"/>',
   'lang-html': '<path d="M9 7l-5 5 5 5M15 7l5 5-5 5M13 5l-2 14"/>',
+  strict: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9h16M9 13l6 4M15 13l-6 4"/>',
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  cinema: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/>',
   edit: '<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12.5 6.5l5 5"/>',
   bumpy: '<path d="M3 16h4V9h5v7h4V7h5"/>',
 };

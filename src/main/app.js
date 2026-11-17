@@ -19,6 +19,11 @@ app.setPath('userData', dataDir);
 
 protocolMod.registerScheme(); // must happen before 'ready'
 
+// macOS: draw with Chromium's mature renderer, not the new "Skia Graphite" one. With Graphite, a web page using CSS
+// backdrop blur (YouTube does, everywhere) broke the clearing of Rove's see-through glass toolbar: old frames stayed
+// drawn under new ones (closed tabs still there, two addresses on top of each other, every caret position).
+if (process.platform === 'darwin') app.commandLine.appendSwitch('disable-skia-graphite');
+
 if (!TEST && !app.requestSingleInstanceLock()) {
   app.quit();
 } else {

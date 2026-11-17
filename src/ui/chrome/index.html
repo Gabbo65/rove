@@ -17,6 +17,7 @@
       <button id="newtab" class="icon" title="New tab (⌘T)"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg><span class="lbl">New tab</span></button>
       <div class="drag-fill"></div>
       <span id="private-badge" hidden>InPrivate</span>
+      <span id="test-version" title="Development build: which test version is running">test version 5</span>
       <button id="tabsearch-btn" class="icon" title="Search tabs (⇧⌘A)">
         <svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
       </button>
@@ -66,6 +67,18 @@
   <!-- The page shows here (a separate view underneath). Popups below are drawn over it while open. -->
   <aside id="side"></aside>
   <main id="stage">
+    <div id="cin-away" hidden>
+      <div class="ca-box">
+        <svg viewBox="0 0 24 24" class="ca-ic"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg>
+        <div class="ca-t">Playing in Cinema</div>
+        <div class="ca-s">This tab is in the Cinema window right now.</div>
+        <div class="ca-btns">
+          <button id="ca-back" class="ca-b go">Bring it back</button>
+          <button id="ca-dup" class="ca-b" title="The page comes back here and Cinema keeps playing a copy">Switch to Duplicate</button>
+          <button id="ca-show" class="ca-b">Show Cinema</button>
+        </div>
+      </div>
+    </div>
     <div id="hist-panel" class="popup" hidden>
       <div class="popup-head"><span>History</span></div>
       <div id="hp-list"></div>

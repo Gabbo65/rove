@@ -62,6 +62,8 @@ function setup(hub) {
   }
   const injector = require('./injector');
   injector.setup(core, hub);
+  require('./cinema').setup(core);
+  require('./protection').setup(core);
   require('./scripts').seedExample(settings);
   hub.hex = core;
   hub.hexInjector = injector;

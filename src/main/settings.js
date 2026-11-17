@@ -8,6 +8,8 @@ const events = new EventEmitter();
 
 // Each setting: default value + a validator that returns the cleaned value or undefined (= reject).
 const bool = (v) => (typeof v === 'boolean' ? v : undefined);
+// site patterns: "example.com" or "name.*" (any domain ending)
+const sitePatterns = (v) => (Array.isArray(v) && v.length <= 200 && v.every((x) => typeof x === 'string' && /^[a-z0-9-]+(\.[a-z0-9-]+)*(\.\*)?$/.test(x)) ? [...new Set(v)] : undefined);
 const oneOf = (...opts) => (v) => (opts.includes(v) ? v : undefined);
 const webUrl = (v) => (typeof v === 'string' && (v === '' || /^https?:\/\/\S+$/i.test(v)) ? v : undefined);
 const SEARCH_ENGINES = ['google', 'bing', 'duckduckgo', 'ecosia', 'brave', 'custom'];
@@ -35,6 +37,9 @@ const SCHEMA = {
   pagesStyle: { default: 'solid', check: oneOf('solid', 'glass') },
   // Your own CSS for Rove's toolbar and built-in pages (web pages are never touched)
   customCss: { default: '', check: (v) => (typeof v === 'string' && v.length <= 50_000 ? v : undefined) },
+  adblock: { default: true, check: bool }, // Hex Protection: ads, trackers, ad popups
+  // Hex Protection "strict popups": on these sites a new tab to another site opens only from a real link click
+  adblockStrict: { default: ['streaming-community.*', 'streamingcommunity.*'], check: sitePatterns },
   glassBlur: { default: true, check: bool }, // off = clear glass (macOS): the desktop shows sharp, 100% = invisible
   glassLevel: { default: 85, check: (v) => (Number.isFinite(v) && v >= 0 && v <= 100 ? Math.round(v) : undefined) }, // transparency %
   // New Tab page

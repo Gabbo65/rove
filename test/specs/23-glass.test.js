@@ -130,4 +130,11 @@ module.exports = [
       await t.until(() => w.glass === false, { message: 'solid again' });
     },
   },
+  {
+    name: 'macOS draws with Chromium\'s mature renderer (Graphite left glass toolbars full of old frames next to backdrop-blur pages)',
+    async run(t) {
+      if (process.platform !== 'darwin') return;
+      t.assert.ok(require('electron').app.commandLine.hasSwitch('disable-skia-graphite'));
+    },
+  },
 ];

@@ -138,5 +138,5 @@ function importList(saved) {
   push();
 }
 
-module.exports = { load, attachSession, list, action, progress, forgetPrivate, importList, folder,
+module.exports = { load, attachSession, list, action, progress, forgetPrivate, importList, folder, uniquePath,
   on: (...a) => events.on(...a) };

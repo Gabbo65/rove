@@ -192,7 +192,7 @@ class Win {
     const [w, h] = this.base.getContentSize();
     this.chrome.setBounds({ x: 0, y: 0, width: w, height: h });
     const page = this.fullscreenTab ? { x: 0, y: 0, width: w, height: h } : this.content;
-    if (this.active?.view) this.active.view.setBounds(page);
+    if (this.active?.view && !this.active.cinema) this.active.view.setBounds(page); // a tab in Cinema lives in that window
     const hw = Math.min(this.hudSize.width, page.width), hh = Math.min(this.hudSize.height, page.height);
     this.hud.setBounds({ x: page.x + page.width - hw, y: page.y, width: hw, height: hh });
   }
@@ -204,7 +204,7 @@ class Win {
     const order = [];
     const showHud = this.hudSize.width > 0 && this.hudSize.height > 0;
     if (!this.overlay) order.push(this.chrome);
-    if (this.active?.view) order.push(this.active.view);
+    if (this.active?.view && !this.active.cinema) order.push(this.active.view);
     if (showHud) order.push(this.hud);
     if (this.cursorOn) order.push(this.cursor);
     if (this.overlay) order.push(this.chrome);
@@ -251,8 +251,8 @@ class Win {
   }
 
   // ---------- tabs ----------
-  newTab(url, { background = false, index, opener, pinned = false, typed = false, asleep = false, title, favicon } = {}) {
-    const tab = new Tab(this, { url: url || urls.NEWTAB, pinned, asleep, title, favicon });
+  newTab(url, { background = false, index, opener, pinned = false, typed = false, asleep = false, title, favicon, adopt } = {}) {
+    const tab = new Tab(this, { url: url || urls.NEWTAB, pinned, asleep, title, favicon, adopt });
     tab.typedNext = typed;
     let at;
     const pinnedCount = this.tabs.filter((t) => t.pinned).length;
